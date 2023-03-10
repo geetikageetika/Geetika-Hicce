@@ -1,0 +1,3 @@
+[submodule "IP/core-comblock"]
+	path = IP/core-comblock
+	url = https://gitlab.com/rodrigomelo9/core-comblock.git

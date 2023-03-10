@@ -1,0 +1,14 @@
+1. xilinx.com_user_HiCCE_2018_1.0
+	originaly created : 09.06.2018
+	added to local repo : 04.07.2018
+	discreption:
+	* created with first virsion of the HiCCE project and modified accodingly.
+	* removed the virtual ADC
+	* seems working
+	* not tested with HiCCE hardware
+
+2. xilinx.com_user_tlast_gen_1.0
+	originaly created : 03.02.2017
+	added to local repo : 04.07.2018
+	discreption:
+	* can be used to generate tlas signal for AXI_DMA.
