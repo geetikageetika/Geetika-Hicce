@@ -1,3 +1,6 @@
 [submodule "IP/core-comblock"]
 	path = IP/core-comblock
 	url = https://gitlab.com/rodrigomelo9/core-comblock.git
+[submodule "udma"]
+	path = udma
+	url = https://gitlab.com/ictp-mlab/udma.git

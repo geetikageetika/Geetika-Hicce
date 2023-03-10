@@ -1,1 +1,7 @@
 hicce-project
+VITIS
+
+*.jou
+*.str
+*.log
+.Xil
