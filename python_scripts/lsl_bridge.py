@@ -70,14 +70,14 @@ def send_data():
                 
                 sample = np.empty((chunk_size, n_cha))
                 sample.fill(5)
-                sample = sample.tolist()
                 
                 # Generating sine wave
                 # t = np.arange(chunk_size) / sample_rate
                 # sample = np.zeros((chunk_size, n_cha))
                 # for i in range(n_cha):
                 #     sample[:, i] = amplitude * np.sin(2 * np.pi * freq * t + phase[i])
-                # sample = sample.tolist()
+                # 
+                sample = sample.tolist()
                 # --------------------------------------------------------------
                 # Get the timestamp of the chunk
                 timestamp = pylsl.local_clock()
