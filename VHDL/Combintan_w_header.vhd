@@ -35,7 +35,8 @@ entity CombIntan_w_header is
     Generic(DWidth : integer :=32;
             ts_resolution : integer :=64; 
             FIFO_SIZE : integer :=32768);
-    Port ( sys_clk  : in STD_LOGIC;
+    Port ( ab_maxis_clk  : in STD_LOGIC;
+           cd_maxis_clk  : in std_logic;
            sys_rstn : in STD_LOGIC;
            sys_en   : in STD_LOGIC;
            nsasmples : in std_logic_vector(Dwidth -1 downto 0);
@@ -221,14 +222,14 @@ begin
     dpack_cd.TRIG<=DataIn_ack(0) or DataIn_ack(1);
 
     --Data Input
-    dpack_ab.CLK<=sys_clk;
+    dpack_ab.CLK<=ab_maxis_clk;
     dpack_ab.RSTN<=sys_rstn;
     dpack_ab.TIME_IN<=timestamp_i;
     dpack_ab.READY<=ab_maxis_tready and sys_en;
     dpack_ab.maxis_tready<=ab_maxis_tready and sys_en;
     dpack_ab.FIFO_AFULL<=FIFO_AFULL_AB;
 
-    dpack_cd.CLK<=sys_clk;
+    dpack_cd.CLK<=cd_maxis_clk;
     dpack_cd.RSTN<=sys_rstn;
     dpack_cd.TIME_IN<=timestamp_i;
     dpack_cd.READY<=cd_maxis_tready and sys_en;
