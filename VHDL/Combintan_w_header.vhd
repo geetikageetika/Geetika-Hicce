@@ -32,19 +32,22 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity CombIntan_w_header is
-    Generic(ts_resolution : integer :=64; 
+    Generic(DWidth : integer :=32;
+            ts_resolution : integer :=64; 
             FIFO_SIZE : integer :=32768);
-    Port ( sys_clk : in STD_LOGIC;
+    Port ( sys_clk  : in STD_LOGIC;
            sys_rstn : in STD_LOGIC;
+           sys_en   : in STD_LOGIC;
+           nsasmples : in std_logic_vector(Dwidth -1 downto 0);
         
-           DinA : in STD_LOGIC_VECTOR (15 downto 0);
-           DinB : in STD_LOGIC_VECTOR (15 downto 0);
-           DinC : in STD_LOGIC_VECTOR (15 downto 0);
-           DinD : in STD_LOGIC_VECTOR (15 downto 0);
+           DataIn_A     : in STD_LOGIC_VECTOR (15 downto 0);
+           DataIn_B     : in STD_LOGIC_VECTOR (15 downto 0);
+           DataIn_C     : in STD_LOGIC_VECTOR (15 downto 0);
+           DataIn_D     : in STD_LOGIC_VECTOR (15 downto 0);
            DataIn_valid : in STD_LOGIC_VECTOR (3 downto 0);
-           Data_Rd_En : out STD_LOGIC_VECTOR (3 downto 0);
-
-           HICCE_ACK_i : in STD_LOGIC;           
+           DataIn_ack   : in STD_LOGIC_VECTOR (3 downto 0);
+           DataIn_ready : out STD_LOGIC_VECTOR (3 downto 0);
+         
            timestamp_i : in STD_LOGIC_VECTOR(ts_resolution -1 downto 0);
 
             --! FIFO Signals
@@ -53,14 +56,19 @@ entity CombIntan_w_header is
            FIFO_CLEAR_CD : out STD_LOGIC;
            FIFO_AFULL_CD : IN STD_LOGIC;
 
-           DoutAB : out STD_LOGIC_VECTOR (31 downto 0);
-           DoutAB_nReady : in STD_LOGIC;
-           DoutAB_valid : out STD_LOGIC;
-           
-           DoutCD : out STD_LOGIC_VECTOR (31 downto 0);
-           DoutCD_nReady : in STD_LOGIC;
-           DoutCD_valid : out STD_LOGIC;
-           
+           --! DATA OUTPUT SIGNALS AXIS MASTER BUS
+           ab_maxis_tdata  : out STD_LOGIC_VECTOR(DWidth -1 downto 0);
+           ab_maxis_tvalid : out STD_LOGIC;
+           ab_maxis_tkeep  : out STD_LOGIC_VECTOR(DWidth/8 - 1 downto 0);
+           ab_maxis_tready : in STD_LOGIC;
+           ab_maxis_tlast  : out STD_LOGIC;
+
+           cd_maxis_tdata  : out STD_LOGIC_VECTOR(DWidth -1 downto 0);
+           cd_maxis_tvalid : out STD_LOGIC;
+           cd_maxis_tkeep  : out STD_LOGIC_VECTOR(DWidth/8 - 1 downto 0);
+           cd_maxis_tready : in STD_LOGIC;
+           cd_maxis_tlast  : out STD_LOGIC;
+          
            --Debug signals
            DBG_COUNT_AB : out STD_LOGIC_VECTOR(31 DOWNTO 0);
            DBG_MAX_COUNT_AB : out STD_LOGIC_VECTOR(31 DOWNTO 0);
@@ -71,7 +79,7 @@ end CombIntan_w_header;
 
 architecture Behavioral of CombIntan_w_header is
     
-    --Decalring component and signals
+    --Declaring components and signals
     component trace_str is
         Generic(DWidth : integer :=32;
                 REG_WIDTH : integer :=32;
@@ -144,9 +152,9 @@ begin
     --Component instantiation
     DPACK_AB_COMP : trace_str
     generic map (
-        DWidth => 32,
-        REG_WIDTH => 32,
-        TSRES => 64,
+        DWidth => DWidth,
+        REG_WIDTH => DWidth,
+        TSRES => ts_resolution,
         FIFO_SIZE => FIFO_SIZE
     )
     port map (
@@ -174,9 +182,9 @@ begin
     --Component instantiation
     DPACK_CD_COMP : trace_str
     generic map (
-        DWidth => 32,
-        REG_WIDTH => 32,
-        TSRES => 64,
+        DWidth => DWidth,
+        REG_WIDTH => DWidth,
+        TSRES => ts_resolution,
         FIFO_SIZE => FIFO_SIZE
     )
     port map (
@@ -204,47 +212,43 @@ begin
     --Constants and configuration
     dpack_ab.TS_CORRECTION<='0';
     dpack_ab.SBE<=(others=>'0');
-    dpack_ab.SAE<=std_logic_vector(to_unsigned(32,32));
-    dpack_ab.TRIG<='1';
+    dpack_ab.SAE<=nsasmples;
+    dpack_ab.TRIG<=DataIn_ack(0) or DataIn_ack(1);
+
+    dpack_cd.TS_CORRECTION<='0';
+    dpack_cd.SBE<=(others=>'0');
+    dpack_cd.SAE<=nsasmples;
+    dpack_cd.TRIG<=DataIn_ack(0) or DataIn_ack(1);
 
     --Data Input
     dpack_ab.CLK<=sys_clk;
     dpack_ab.RSTN<=sys_rstn;
     dpack_ab.TIME_IN<=timestamp_i;
-    dpack_ab.READY<=HICCE_ACK_i;
-    dpack_ab.maxis_tready<=not DoutAB_nReady;
+    dpack_ab.READY<=ab_maxis_tready and sys_en;
+    dpack_ab.maxis_tready<=ab_maxis_tready and sys_en;
     dpack_ab.FIFO_AFULL<=FIFO_AFULL_AB;
 
-    --HICCE Data   
-    dpack_ab.DIN<=DinA & DinB;
-    dpack_ab.DVALID<=(DataIn_valid(0) OR DataIn_valid(1));
-    
-
-    DoutAB <= dpack_ab.maxis_tdata;
-    DoutAB_valid <= dpack_ab.maxis_tvalid;
-    FIFO_CLEAR_AB<= dpack_ab.FIFO_CLEAR;
-
-    --Constants and configuration
-    dpack_cd.TS_CORRECTION<='0';
-    dpack_cd.SBE<=(others=>'0');
-    dpack_cd.SAE<=std_logic_vector(to_unsigned(32,32));
-    dpack_cd.TRIG<='1';
-
-    --Data Input
     dpack_cd.CLK<=sys_clk;
     dpack_cd.RSTN<=sys_rstn;
     dpack_cd.TIME_IN<=timestamp_i;
-    dpack_cd.READY<=HICCE_ACK_i;
-    dpack_cd.maxis_tready<=not DoutAB_nReady;
-    dpack_cd.FIFO_AFULL<=FIFO_AFULL_AB;
+    dpack_cd.READY<=cd_maxis_tready and sys_en;
+    dpack_cd.maxis_tready<=cd_maxis_tready and sys_en;
+    dpack_cd.FIFO_AFULL<=FIFO_AFULL_CD;
 
     --HICCE Data   
-    dpack_cd.DIN<=DinC & DinD;
-    dpack_cd.DVALID<=(DataIn_valid(3) OR DataIn_valid(2));
+    dpack_ab.DIN<=DataIn_A & DataIn_B;
+    dpack_ab.DVALID<=(DataIn_valid(0) OR DataIn_valid(1));
+
+    dpack_cd.DIN<=DataIn_C & DataIn_D;
+    dpack_cd.DVALID<=(DataIn_valid(2) OR DataIn_valid(3));
     
 
-    DoutCD <= dpack_cd.maxis_tdata;
-    DoutCD_valid <= dpack_cd.maxis_tvalid;
+    ab_maxis_tdata <= dpack_ab.maxis_tdata;
+    ab_maxis_tvalid <= dpack_ab.maxis_tvalid;
+    FIFO_CLEAR_AB<= dpack_ab.FIFO_CLEAR;
+
+    cd_maxis_tdata <=  dpack_cd.maxis_tdata;
+    cd_maxis_tvalid <= dpack_cd.maxis_tvalid;
     FIFO_CLEAR_CD<= dpack_cd.FIFO_CLEAR;
 
     --Debug data
@@ -254,7 +258,12 @@ begin
     DBG_MAX_COUNT_AB<=dpack_ab.debug_max_count;
     DBG_MAX_COUNT_CD<=dpack_cd.debug_max_count;
 
+    ab_maxis_tkeep<=dpack_ab.maxis_tkeep;
+    ab_maxis_tlast<=dpack_ab.maxis_tlast;
 
-    Data_Rd_En <= (not DoutAB_nReady) & (not DoutAB_nReady) & (not DoutCD_nReady) & (not DoutCD_nReady);
+    cd_maxis_tkeep<=dpack_cd.maxis_tkeep;
+    cd_maxis_tlast<=dpack_cd.maxis_tlast;
+
+    DataIn_ready <= (dpack_ab.maxis_tready) & (dpack_ab.maxis_tready) & (dpack_cd.maxis_tready) & (dpack_cd.maxis_tready);
 
 end Behavioral;
