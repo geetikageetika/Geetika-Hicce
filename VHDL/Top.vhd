@@ -1,17 +1,17 @@
---Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+--Copyright 1986-2023 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
---Tool Version: Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
---Date        : Fri Mar 10 13:28:03 2023
---Host        : hp6g4-mlab-2 running 64-bit major release  (build 9200)
---Command     : generate_target design_1_wrapper.bd
---Design      : design_1_wrapper
+--Tool Version: Vivado v.2022.2.2 (lin64) Build 3788238 Tue Feb 21 19:59:23 MST 2023
+--Date        : Wed May  3 17:09:00 2023
+--Host        : hp6g4-mlab-5 running 64-bit Ubuntu 20.04.6 LTS
+--Command     : generate_target HICCEv2_w_header_wrapper.bd
+--Design      : HICCEv2_w_header_wrapper
 --Purpose     : IP block netlist
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 library UNISIM;
 use UNISIM.VCOMPONENTS.ALL;
-entity design_1_wrapper is
+entity HICCEv2_w_header_wrapper is
   port (
     ADC_CNV_0 : out STD_LOGIC_VECTOR ( 3 downto 0 );
     ADC_SCLK_0 : out STD_LOGIC_VECTOR ( 3 downto 0 );
@@ -49,10 +49,10 @@ entity design_1_wrapper is
     Sel4_0 : inout STD_LOGIC_VECTOR ( 3 downto 0 );
     Settle_0 : out STD_LOGIC_VECTOR ( 3 downto 0 )
   );
-end design_1_wrapper;
+end HICCEv2_w_header_wrapper;
 
-architecture STRUCTURE of design_1_wrapper is
-  component design_1 is
+architecture STRUCTURE of HICCEv2_w_header_wrapper is
+  component HICCEv2_w_header is
   port (
     ADC_CNV_0 : out STD_LOGIC_VECTOR ( 3 downto 0 );
     ADC_SCLK_0 : out STD_LOGIC_VECTOR ( 3 downto 0 );
@@ -90,9 +90,9 @@ architecture STRUCTURE of design_1_wrapper is
     FIXED_IO_ps_clk : inout STD_LOGIC;
     FIXED_IO_ps_porb : inout STD_LOGIC
   );
-  end component design_1;
+  end component HICCEv2_w_header;
 begin
-design_1_i: component design_1
+HICCEv2_w_header_i: component HICCEv2_w_header
      port map (
       ADC_CNV_0(3 downto 0) => ADC_CNV_0(3 downto 0),
       ADC_SCLK_0(3 downto 0) => ADC_SCLK_0(3 downto 0),
