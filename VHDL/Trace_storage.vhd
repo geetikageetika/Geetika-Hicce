@@ -69,6 +69,7 @@ entity trace_str is
     --! Debug signals, TODO: Remove this debug signals
     debug_count : out STD_LOGIC_VECTOR(31 DOWNTO 0);
     debug_max_count : out STD_LOGIC_VECTOR(31 DOWNTO 0);
+    debug_state : out std_logic_vector (2 downto 0);
 
     TRIG        : IN STD_LOGIC --! Trigger Signal
    );
@@ -217,6 +218,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'0');
                 maxis_tlast  <='0';
                 iTimeStamp.clear<='1';
+                debug_state<="000";
 
             when WAIT_STATE =>
                 maxis_tdata  <=DIN;  
@@ -224,6 +226,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <='0';
                 iTimeStamp.clear<='0';
+                debug_state<="001";
 
             when WRITE_HEAD =>
                 maxis_tdata  <=SOH & hpack.CEN & hpack.SBT & hpack.SAT;  
@@ -231,6 +234,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
+                debug_state<="010";
 
             when WRITE_TSMSB =>
                 maxis_tdata  <=hpack.TSMSB;  
@@ -238,6 +242,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
+                debug_state<="011";
 
             when WRITE_TSLSB =>
                 maxis_tdata  <=hpack.TSLSB;  
@@ -245,6 +250,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
+                debug_state<="100";
 
             when COUNT_STATE =>
                 maxis_tdata  <=DIN;  
@@ -252,6 +258,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
+                debug_state<="101";
 
             when WRITE_EOH =>
                 maxis_tdata  <=EOT & hpack.CEN & hpack.TC & "00000000000000" & hpack.ERR;  
@@ -259,6 +266,7 @@ architecture Behavioral of trace_str is
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='1';
+                debug_state<="110";
                 
         end case;
     end process;
@@ -317,4 +325,7 @@ architecture Behavioral of trace_str is
                 end if;
         end case;    
     end process;
+
+
+    
 end;

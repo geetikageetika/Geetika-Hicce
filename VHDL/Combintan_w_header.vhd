@@ -74,7 +74,9 @@ entity CombIntan_w_header is
            DBG_COUNT_AB : out STD_LOGIC_VECTOR(31 DOWNTO 0);
            DBG_MAX_COUNT_AB : out STD_LOGIC_VECTOR(31 DOWNTO 0);
            DBG_COUNT_CD : out STD_LOGIC_VECTOR(31 DOWNTO 0);
-           DBG_MAX_COUNT_CD : out STD_LOGIC_VECTOR(31 DOWNTO 0)                    
+           DBG_MAX_COUNT_CD : out STD_LOGIC_VECTOR(31 DOWNTO 0);
+           DBG_STATE_AB : out STD_LOGIC_VECTOR(2 DOWNTO 0);
+           DBG_STATE_CD : out STD_LOGIC_VECTOR(2 DOWNTO 0)                    
            );
 end CombIntan_w_header;
 
@@ -118,6 +120,7 @@ architecture Behavioral of CombIntan_w_header is
         --! Debug signals, TODO: Remove this debug signals
         debug_count : out STD_LOGIC_VECTOR(31 DOWNTO 0);
         debug_max_count : out STD_LOGIC_VECTOR(31 DOWNTO 0);
+        debug_state : out std_logic_vector (2 downto 0);
     
         TRIG        : IN STD_LOGIC --! Trigger Signal
        );
@@ -177,6 +180,7 @@ begin
         SAE => dpack_ab.SAE,
         debug_count => dpack_ab.debug_count,
         debug_max_count => dpack_ab.debug_max_count,
+        debug_state => DBG_STATE_AB,
         TRIG => dpack_ab.TRIG
     );
 
@@ -207,6 +211,7 @@ begin
         SAE => dpack_cd.SAE,
         debug_count => dpack_cd.debug_count,
         debug_max_count => dpack_cd.debug_max_count,
+        debug_state => DBG_STATE_CD,
         TRIG => dpack_cd.TRIG
     );
 
