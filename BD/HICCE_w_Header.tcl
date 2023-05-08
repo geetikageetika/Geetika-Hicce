@@ -1,6 +1,6 @@
 
 ################################################################
-# This is a generated script based on design: design_1
+# This is a generated script based on design: HICCEv2_w_header
 #
 # Though there are limitations about the generated script,
 # the main purpose of this utility is to make learning
@@ -35,7 +35,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 ################################################################
 
 # To test this script, run the following commands from Vivado Tcl console:
-# source design_1_script.tcl
+# source HICCEv2_w_header_script.tcl
 
 
 # The design that will be created by this Tcl script contains the following 
@@ -276,8 +276,6 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.DRAM_IO_ENA {false} \
     CONFIG.FIFO_IN_DEPTH {32768} \
-    CONFIG.FIFO_IN_DWIDTH {32} \
-    CONFIG.REGS_IN_DEPTH {6} \
     CONFIG.REGS_OUT_DEPTH {8} \
   ] $comblock_0
 
@@ -287,9 +285,8 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.DRAM_IO_ENA {false} \
     CONFIG.FIFO_IN_DEPTH {32768} \
-    CONFIG.FIFO_IN_DWIDTH {32} \
-    CONFIG.REGS_IN_ENA {false} \
-    CONFIG.REGS_OUT_ENA {false} \
+    CONFIG.REGS_IN_ENA {true} \
+    CONFIG.REGS_OUT_ENA {true} \
   ] $comblock_1
 
 
@@ -643,6 +640,14 @@ proc create_root_design { parentCell } {
   ] $util_vector_logic_2
 
 
+  # Create instance: util_vector_logic_3, and set properties
+  set util_vector_logic_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_3 ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {not} \
+    CONFIG.C_SIZE {4} \
+  ] $util_vector_logic_3
+
+
   # Create instance: xlconstant_1, and set properties
   set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
 
@@ -689,11 +694,11 @@ proc create_root_design { parentCell } {
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_STATE_AB]
   connect_bd_net -net DBG_STATE_CD [get_bd_pins CombIntan_w_header_0/DBG_STATE_CD] [get_bd_pins system_ila_0/probe27]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_STATE_CD]
-  connect_bd_net -net FIFO_empty [get_bd_pins HiCCEv2_v2022_0/FIFO_empty]
+  connect_bd_net -net FIFO_empty [get_bd_pins HiCCEv2_v2022_0/FIFO_empty] [get_bd_pins util_vector_logic_3/Op1]
   connect_bd_net -net HiCCEv2_v2022_0_ADC_CNV [get_bd_ports ADC_CNV_0] [get_bd_pins HiCCEv2_v2022_0/ADC_CNV]
   connect_bd_net -net HiCCEv2_v2022_0_ADC_SCLK [get_bd_ports ADC_SCLK_0] [get_bd_pins HiCCEv2_v2022_0/ADC_SCLK] [get_bd_pins system_ila_0/probe24]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_ADC_SCLK]
-  connect_bd_net -net HiCCEv2_v2022_0_Ack_intan [get_bd_pins CombIntan_w_header_0/DataIn_ack] [get_bd_pins HiCCEv2_v2022_0/Ack_intan] [get_bd_pins comblock_0/reg0_i] [get_bd_pins system_ila_0/probe12]
+  connect_bd_net -net HiCCEv2_v2022_0_Ack_intan [get_bd_pins HiCCEv2_v2022_0/Ack_intan] [get_bd_pins comblock_0/reg0_i] [get_bd_pins system_ila_0/probe12]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Ack_intan]
   connect_bd_net -net HiCCEv2_v2022_0_Conn_All [get_bd_ports Conn_All_0] [get_bd_pins HiCCEv2_v2022_0/Conn_All]
   connect_bd_net -net HiCCEv2_v2022_0_Data_intan_A [get_bd_pins CombIntan_w_header_0/DataIn_A] [get_bd_pins HiCCEv2_v2022_0/Data_intan_A] [get_bd_pins system_ila_0/probe13]
@@ -713,7 +718,6 @@ proc create_root_design { parentCell } {
   connect_bd_net -net HiCCEv2_v2022_0_Sel0_Reset [get_bd_ports Sel0_Reset_0] [get_bd_pins HiCCEv2_v2022_0/Sel0_Reset]
   connect_bd_net -net HiCCEv2_v2022_0_Sel1_Step [get_bd_ports Sel1_Step_0] [get_bd_pins HiCCEv2_v2022_0/Sel1_Step]
   connect_bd_net -net HiCCEv2_v2022_0_Settle [get_bd_ports Settle_0] [get_bd_pins HiCCEv2_v2022_0/Settle]
-  connect_bd_net -net Net [get_bd_pins HiCCEv2_v2022_0/Read_intan] [get_bd_pins comblock_0/reg4_o]
   connect_bd_net -net Net1 [get_bd_ports Sel2_Sync_0] [get_bd_pins HiCCEv2_v2022_0/Sel2_Sync]
   connect_bd_net -net Net2 [get_bd_ports Sel3_0] [get_bd_pins HiCCEv2_v2022_0/Sel3]
   connect_bd_net -net Net3 [get_bd_ports Sel4_0] [get_bd_pins HiCCEv2_v2022_0/Sel4]
@@ -724,6 +728,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net comblock_0_reg1_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_B] [get_bd_pins comblock_0/reg1_o]
   connect_bd_net -net comblock_0_reg2_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_C] [get_bd_pins comblock_0/reg2_o]
   connect_bd_net -net comblock_0_reg3_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_D] [get_bd_pins comblock_0/reg3_o]
+  connect_bd_net -net comblock_0_reg4_o [get_bd_pins HiCCEv2_v2022_0/Read_intan] [get_bd_pins comblock_0/reg4_o]
   connect_bd_net -net comblock_0_reg5_o [get_bd_pins comblock_0/reg5_o] [get_bd_pins util_vector_logic_0/Op2]
   connect_bd_net -net comblock_0_reg6_o [get_bd_pins CombIntan_w_header_0/nsasmples] [get_bd_pins comblock_0/reg6_o] [get_bd_pins system_ila_0/probe8]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg6_o]
@@ -743,6 +748,7 @@ proc create_root_design { parentCell } {
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets util_vector_logic_1_Res]
   connect_bd_net -net util_vector_logic_2_Res [get_bd_pins CombIntan_w_header_0/cd_maxis_tready] [get_bd_pins system_ila_0/probe19] [get_bd_pins util_vector_logic_2/Res]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets util_vector_logic_2_Res]
+  connect_bd_net -net util_vector_logic_3_Res [get_bd_pins CombIntan_w_header_0/DataIn_ack] [get_bd_pins util_vector_logic_3/Res]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins HiCCEv2_v2022_0/ADC_SDO_VIRTUAL_A] [get_bd_pins xlconstant_1/dout]
   connect_bd_net -net xlslice_0_Dout [get_bd_pins CombIntan_w_header_0/sys_en] [get_bd_pins xlslice_0/Dout]
 
@@ -754,6 +760,7 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
+  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -765,6 +772,4 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
-
-common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
