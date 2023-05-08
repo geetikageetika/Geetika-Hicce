@@ -224,7 +224,7 @@ begin
     dpack_cd.TS_CORRECTION<='0';
     dpack_cd.SBE<=(others=>'0');
     dpack_cd.SAE<=nsasmples;
-    dpack_cd.TRIG<=DataIn_ack(0) or DataIn_ack(1);
+    dpack_cd.TRIG<=DataIn_ack(2) or DataIn_ack(3);
 
     --Data Input
     dpack_ab.CLK<=ab_maxis_clk;
