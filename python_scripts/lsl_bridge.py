@@ -1,7 +1,7 @@
 import time, threading
 import pylsl
 import numpy as np
-from hicce_data_acquisition import data_acquisition, chunk_size
+from hicce_data_acquisition import get_data, chunk_size, initial_setup, enable_acquisition
 
 
 #%% PARAMETERS
@@ -17,6 +17,7 @@ l_cha = [str(i) for i in range(n_cha)]
 units = 'uV'
 manufacturer = 'MLab_ICTP'
 sample_rate = 250
+
 
  
 
@@ -57,12 +58,23 @@ def send_data():
         try:
             if lsl_outlet is not None:
                 # Get data
-                sample = data_acquisition()
+                # sample = data_acquisition()
+                # sample=np.random.rand(n_cha,chunk_size)
+                initial_setup()
+                enable_acquisition(chunk_size)
+                (TSAB, CHAB), (TSCD, CHCD)=get_data(chunk_size)
+                if TSAB>0:
+                    # for d in CHAB[0:8]:
+                        # print(len(d))
+                    # print(CHAB[0])
+                    # print(CHAB[0:8])
+                    sample=CHAB
                 
                 # Get the timestamp of the chunk
-                timestamp = pylsl.local_clock()
+                # timestamp = pylsl.local_clock()
+                    timestamp=TSAB*4e-9
                 # Send the chunk through LSL
-                lsl_outlet.push_chunk(sample, timestamp)
+                    lsl_outlet.push_chunk(sample, timestamp)
                 # Wait for the next chunk.
                 # time.sleep(chunk_size / sample_rate)
     
