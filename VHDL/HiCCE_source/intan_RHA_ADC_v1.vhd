@@ -36,6 +36,7 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity intan_RHA_ADC_v1 is
+ GENERIC(SYS_CLK_FREQ : INTEGER :=250);
  PORT (
 --------------------------------
 -- COMMON INTERFACE SIGNALS
@@ -91,27 +92,66 @@ COMPONENT FIFO_64k_16bit_v0
   );
 END COMPONENT;
 
+-----------------------------------------------------------------------------------------------
+-------------- SPI CONTROL SIGNALS AND COMPONENTS ---------------------------------------------
+-----------------------------------------------------------------------------------------------
+
 COMPONENT spi_master IS
-  GENERIC(
-    slaves  : INTEGER := 4;  --number of spi slaves
-    d_width : INTEGER := 2); --data bus width
-  PORT(
-    clock   : IN     STD_LOGIC;                             --system clock
-    reset_n : IN     STD_LOGIC;                             --asynchronous reset
-    enable  : IN     STD_LOGIC;                             --initiate transaction
-    cpol    : IN     STD_LOGIC;                             --spi clock polarity
-    cpha    : IN     STD_LOGIC;                             --spi clock phase
-    cont    : IN     STD_LOGIC;                             --continuous mode command
-    clk_div_i : IN   STD_LOGIC_VECTOR(31 DOWNTO 0);         --system clock cycles per 1/2 period of sclk
-    addr_i    : IN   STD_LOGIC_VECTOR(31 DOWNTO 0);         --address of slave
-    tx_data : IN     STD_LOGIC_VECTOR(d_width-1 DOWNTO 0);  --data to transmit
-    miso    : IN     STD_LOGIC;                             --master in, slave out
-    sclk    : BUFFER STD_LOGIC;                             --spi clock
-    ss_n    : BUFFER STD_LOGIC_VECTOR(slaves-1 DOWNTO 0);   --slave select
-    mosi    : OUT    STD_LOGIC;                             --master out, slave in
-    busy    : OUT    STD_LOGIC;                             --busy / data ready signal
-    rx_data : OUT    STD_LOGIC_VECTOR(d_width-1 DOWNTO 0)); --data received
-END COMPONENT;
+GENERIC(
+  slaves  : INTEGER := 1;  --number of spi slaves
+  d_width : INTEGER := 24); --data bus width
+PORT(
+  clock   : IN     STD_LOGIC;                             --system clock
+  reset_n : IN     STD_LOGIC;                             --asynchronous reset
+  enable  : IN     STD_LOGIC;                             --initiate transaction
+  cpol    : IN     STD_LOGIC;                             --spi clock polarity
+  cpha    : IN     STD_LOGIC;                             --spi clock phase
+  cont    : IN     STD_LOGIC;                             --continuous mode command
+  clk_div_i : IN   STD_LOGIC_VECTOR(31 DOWNTO 0);         --system clock cycles per 1/2 period of sclk
+  addr_i    : IN   STD_LOGIC_VECTOR(31 DOWNTO 0);         --address of slave
+  tx_data : IN     STD_LOGIC_VECTOR(d_width-1 DOWNTO 0);  --data to transmit
+  miso    : IN     STD_LOGIC;                             --master in, slave out
+  sclk    : BUFFER STD_LOGIC;                             --spi clock
+  ss_n    : BUFFER STD_LOGIC_VECTOR(slaves-1 DOWNTO 0);   --slave select
+  mosi    : OUT    STD_LOGIC;                             --master out, slave in
+  busy    : OUT    STD_LOGIC;                             --busy / data ready signal
+  rx_data : OUT    STD_LOGIC_VECTOR(d_width-1 DOWNTO 0)); --data received
+END COMPONENT spi_master;
+
+COMPONENT AD7982_CNV is
+    generic(tquiet1 : integer :=50);
+    Port(
+    rst_n     : in std_logic;
+    clk       : in std_logic;
+
+    enable_tx  : in std_logic;
+    spi_cs     : in std_logic;
+    spi_mosi   : in std_logic;
+    
+    cnv        : out std_logic;
+    sdi        : out std_logic;
+    enable_spi : out std_logic
+    );
+end COMPONENT;
+
+TYPE CFG_REG is record
+    addr        : std_logic_vector(31 downto 0);
+    clk_div     : std_logic_vector(31 downto 0);
+    cpol        : std_logic;
+    cpha        : std_logic;
+    cont        : std_logic;
+    io          : std_logic;
+end record CFG_REG;
+
+signal SPI : CFG_REG;
+
+constant SPI_CLK_DIV : STD_LOGIC_VECTOR(31 DOWNTO 0):=STD_LOGIC_VECTOR(TO_UNSIGNED(SYS_CLK_FREQ,32));
+
+signal mon_address : STD_LOGIC_VECTOR(31 DOWNTO 0);
+signal ss_n : STD_LOGIC_VECTOR(0 DOWNTO 0);
+signal cnv_enable : std_logic;
+signal adc_read : std_logic;
+signal adc_busy : std_logic;
 
 -- Common Signals
 
@@ -141,8 +181,8 @@ signal sel_out					: STD_LOGIC_VECTOR(4 DOWNTO 0);	--for debuging channel by cha
 ------------------------------
 --for new state machine
 ------------------------------
-  type state_type is (st_reset, st_cnv, st_wcnv, st_L17_1, st_H17_1, st_L0, st_H0, st_step_new_high, st_step_new_low, st_CYCwait, st_CYCend, st_FIFO_write); 
-  signal state, next_state : state_type; 
+  type state_type is (st_reset, st_read_ADC, st_next_ch); 
+  signal cstate, nstate : state_type; 
   signal count_cnv    : std_logic_vector(6 downto 0); --to count 2 (up to 3) clock cycles (10ns < "Tcnvh" < 500ns)
   signal count_wcnv   : std_logic_vector(6 downto 0); --to count 72 (up to 127) clock cycles (500ns < Tconv < 710ns)
   signal count_data   : std_logic_vector(4 downto 0); --to count 17 (up to 31) clock cycles (the 18 bits of serial data)	
@@ -161,17 +201,24 @@ signal sel_out					: STD_LOGIC_VECTOR(4 DOWNTO 0);	--for debuging channel by cha
 signal settle_intan, reset_intan, step_intan, sync_intan, mode_INTAN : STD_LOGIC;
 signal CLK_SWITCH_INT      : STD_LOGIC; 
 
-begin
--- Common Signals
+signal virtual_mode : std_logic;
 
-	CONFIG_RES_TEMP <= CONFIG_RES_IN;
+begin
 
 ----------------------------------------------------------------------------
 -- Intan Digital Input COnfiguration for Manual OR Auto(Sequential) Reading 
 ---------------------------------------------------------------------------- 
 --(Reserve Bits & SETTLE & SEL4 & SEL3 & SEL2 & SEL1 & SEL0 & TEST_ENB & CONN_ALL & DAQ_Start_Stop & READ_MODE & VIRTUAL MODE)	
 
-	MODE_INTAN	   	<= CONFIG_RES_TEMP(1);        -- Selection of Read Mode(Manual('0')/Auto_Sequential('1'))
+	CONFIG_RES_TEMP 	<= CONFIG_RES_IN;
+
+	test_en     		<= CONFIG_RES_TEMP(4);
+	
+	MODE_INTAN	   		<= CONFIG_RES_TEMP(1);        -- Selection of Read Mode(Manual('0')/Auto_Sequential('1'))
+
+	CONN_ALL			<= CONFIG_RES_TEMP(3);
+ 
+	virtual_mode		<= CONFIG_RES_TEMP(0);        -- To be implemented
 
 	settle      		<= CONFIG_RES_TEMP(10) when MODE_INTAN = '0' else
 	                       (sys_reset or CONFIG_RES_TEMP(10));	
@@ -185,226 +232,120 @@ begin
 	                       CLK_SWITCH_INT;	                     	                                    
 	sel0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
 	                       (not sys_reset and CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_reset; now you can reset intan through register also
-	test_en     		<= '0';                                              -- modified on 14/08/2018; old = "test_en <= CONFIG_RES_TEMP(4) when MODE_INTAN = '0' else '0'";
-	conn_all    		<= '0';                                              -- modified on 14/08/2018; old = "test_en <= CONFIG_RES_TEMP(3) when MODE_INTAN = '0' else '0'";
 
 	
 	MODE <= '0' when MODE_INTAN = '0' else '1';
----------------------------------------------
---ADC Interface signals
-	sig_SDO_data_in 	<= SDO_data_in;		
-	CNV_convert_out 	<= sig_CNV_convert_out;			
-	SCLK_clock_out		<= sig_SCLK_clock_out;	
-	CLK_SWITCH          <= CLK_SWITCH_INT;113
----------------------------------------------
 
--------------------------------
--- FIFO Generation (8K_16Bits)
--------------------------------
+----------------------------------------------------------------------------
+-- LEDs Logic 
+---------------------------------------------------------------------------- 
 
-ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
+	LED_TEST_2 <= FIFO_FULL;   -- TEST LEDs
+	LED_TEST_1 <= sel2_sync;   -- TEST LEDs
 
-  PORT MAP  (
-		      rst 		    => sys_reset,                   -- fifo reset is active high
-		      wr_clk 	    => sys_clk,                     -- to be checked
-		      rd_clk 	    => FIFO_clk,
-		      din 		    => data_adc(16 downto 1), 		-- because we expect only positive values !!!
-		      wr_en 	    => fifo_wr_en_new,               -- modified 22/07/2018, old = fifo_wr_en
-		      rd_en 	    => FIFO_READ_ENB,  				-- same as with DPM --could be ("not empty" and "pipeO_read")
-		      dout 		    => FIFO_DATA_OUT,				-- OUT DATA tobe read from PC
-		      full 		    => FIFO_FULL, --open,    		-- we are not using these flags
-		      empty 	    => FIFO_empty
-            );
 
-    fifo_wr_en_new <= FIFO_WRITE_ENB and fifo_wr_en;            --new line added 22/07/2018
--------------------------------------------------
--- New Code (To increment the Sequential Counting)
--------------------------------------------------
+----------------------------------------------------------------------------
+-- ADC7982 SPI logic 
+---------------------------------------------------------------------------- 
 
-LED_TEST_2 <= FIFO_FULL;         -- TEST LEDs
-LED_TEST_1 <= sel2_sync;   -- TEST LEDs
+	mon_address<=(others=>'0');
 
-------------------------------------------------------------------
--- Insert the following in the architecture after the begin keyword
--- State Machine 
--- For Reading ADC and Generating Parallel DATA
--- 
-------------------------------------------------------------------
- 
-SYNC_PROC: process (sys_reset, DAQ_start, sys_clk, FIFO_FULL, state)
-begin
-if (sys_reset = '1' OR DAQ_start = '0') then
-		  state <= st_reset;		  
-elsif (sys_clk'event and sys_clk = '1') then
-			state <= next_state;
 
-	 case (state) is
-		when st_reset =>
-				count_cnv <= "0000000";
-				count_wcnv <=  "0000000";
-				count_data <= "00000";	
---				counter_out <= x"0000";
-				counter_cyc <= "0000000";
-			    data_adc <= "000000000000000000";
-		when st_cnv =>
-				count_cnv <= count_cnv + "1";
-				count_wcnv <= count_wcnv + "1";
-				counter_cyc <= counter_cyc + "1";
-				data_adc <= "000000000000000000";
-        when st_L17_1 =>
-                counter_cyc <= counter_cyc + "1";
-		when st_H17_1 =>
-		        counter_cyc <= counter_cyc + "1";
-				count_data <= count_data + "1";
-				data_adc <= data_adc(16 downto 0) & sig_SDO_data_in;  --shift left and concatenate with SDO input bit;		
-		when st_L0 =>
-		      counter_cyc <= counter_cyc + "1";
-		when st_H0 =>
-                counter_cyc <= counter_cyc + "1";
-                count_cnv <= "0000000";
-                count_wcnv <=  "0000000";				
-                count_data <= "00000";
-                data_adc <= data_adc(16 downto 0) & sig_SDO_data_in;  --shift left and concatenate with SDO input bit;	
-		when st_FIFO_write =>
-              counter_cyc <= counter_cyc + "1";
-		when st_CYCwait =>
-		      counter_cyc <= counter_cyc + "1";
-		when st_CYCend =>
-		      counter_cyc <= "0000000";
-		when others => 
-				counter_cyc <= counter_cyc + "0";
-				count_cnv <= count_cnv + "0";
-				count_wcnv <= count_wcnv + "0";
-				count_data <= count_data + "0";
-		end case;  
-end if;
-end process;
+    AD7982_CTRL: AD7982_CNV
+    generic map(
+      tquiet1 => 50
+      )
+    Port map(
+    rst_n      =>SYS_RESET,
+    clk        =>SYS_CLK,
+    enable_tx  => adc_read, --Start ADC read capture
+    spi_cs     => ss_n(0),
+    spi_mosi   => '0',
+    cnv        => CNV_CONVERT_OUT,
+    sdi        => open,
+    enable_spi => cnv_enable
+    );
 
----------------------------------------------------------
--- MOORE State-Machine - Outputs based on state only
----------------------------------------------------------
-OUTPUT_DECODE: process (state, counter_out, FIFO_FULL)
-  begin
-      --insert statements to decode internal output signals
-	 case (state) is
-		when st_reset =>
-				sig_SCLK_clock_out  <= '0';
-				sig_CNV_convert_out <= '0';
-				fifo_wr_en 			<= '0'; 
-	            CLK_SWITCH_INT      <= '0';   -- Added Code
-		when st_cnv =>
-				sig_SCLK_clock_out  <= '0';
-				sig_CNV_convert_out <= '1';
-				fifo_wr_en           <= '0'; 
-				CLK_SWITCH_INT       <= '0';
 
-		when st_L17_1 =>
-				sig_SCLK_clock_out   <= '0'; 
-				sig_CNV_convert_out  <= '0';
-				fifo_wr_en           <= '0'; 		
-				CLK_SWITCH_INT       <= '1';
-		when st_H17_1 =>
-				sig_SCLK_clock_out   <= '1'; 
-				sig_CNV_convert_out  <= '0';
-				fifo_wr_en           <= '0'; 
-				CLK_SWITCH_INT       <= '1';
-		when st_L0 =>
-				sig_SCLK_clock_out   <= '0'; 
-				sig_CNV_convert_out  <= '0';
-				fifo_wr_en           <= '0'; 
-				CLK_SWITCH_INT       <= '0';
+    AD7982_spi: spi_master
+    GENERIC MAP(
+      slaves  => 1, 
+      d_width => 18
+    )
+    PORT MAP(
+      clock   => SYS_CLK,
+      reset_n => SYS_RESET,
+      enable  => cnv_enable,
+      cpol    => '0',
+      cpha    => '0',
+      cont    => adc_read, --Set in continous mode
+      clk_div_i => SPI_CLK_DIV, 
+      addr_i    => mon_address, --SPI.addr -1
+      tx_data => open, 
+      miso    => SDO_DATA_IN,
+      sclk    => SCLK_CLOCK_OUT,
+      ss_n    =>ss_n, 
+      mosi    => open,
+      busy    =>adc_busy,
+      rx_data =>data_adc
+    );
 
-		when st_H0 =>
-				sig_SCLK_clock_out   <= '1'; 
-				sig_CNV_convert_out  <= '0';
-				fifo_wr_en           <= '0';
-				CLK_SWITCH_INT       <= '0';
+----------------------------------------------------------------------------
+-- State machine for sequential counting
+---------------------------------------------------------------------------- 
 
-		when st_FIFO_write =>
-            sig_SCLK_clock_out   <= '0'; 
-            sig_CNV_convert_out  <= '0';
-            CLK_SWITCH_INT       <= '0';
-                if FIFO_FULL='1' then -- if counter_out = x"2000" then -- Reading 8K FIFO   
-                    fifo_wr_en <= '0';             -- new modification !!!!!!!!!!!!!!
-                else
-                    fifo_wr_en <= '1';             -- write enable of the FIFO  --new modification !!!!!!!!!!!!!!
-                end if;  
-                     
-		when st_CYCwait =>
-		      sig_SCLK_clock_out   <= '0'; 
-              sig_CNV_convert_out  <= '0';
-              CLK_SWITCH_INT       <= '0';
-              fifo_wr_en 		   <= '0';
-        
-        when st_CYCend =>
-            sig_SCLK_clock_out   <= '0'; 
-            sig_CNV_convert_out  <= '0';
-            CLK_SWITCH_INT       <= '0';
-            fifo_wr_en           <= '0';
-        
-        when others =>
-            sig_SCLK_clock_out   <= '0'; 
-            sig_CNV_convert_out  <= '0';
-            CLK_SWITCH_INT       <= '0';
-            fifo_wr_en           <= '0';     
+	--FSM for intan readout
+
+	--sync process
+	process (SYS_CLK, SYS_RESET)
+	begin
+		if SYS_RESET = '0' then
+			cstate<=st_reset;
+		elsif rising_edge(SYS_CLK) then
+			cstate<=nstate;
+		end if;	
+	end process;
+
+	--next state process
+	process (cstate, adc_busy, DAQ_start)
+	begin
+		case cstate is
+			when st_reset =>
+				if DAQ_start = '1' then
+					nstate<=st_read_ADC;
+				else
+					nstate<=st_reset;
+				end if;
+			when st_read_ADC =>
+				if adc_busy = '1' then
+					nstate<=st_read_ADC;
+				else
+					nstate<=st_next_ch;
+				end if;			
+			when st_next_ch =>
+				if DAQ_start = '1' then
+					nstate<=st_read_ADC;
+				else
+					nstate<=st_reset;
+				end if;
+			when others =>
+				nstate<=st_reset;
 		end case;
-end process;
+	end process;
 
-NEXT_STATE_DECODE: process (state, count_cnv, count_wcnv, count_data, counter_cyc, FIFO_FULL)
-begin
-	--declare default state for next_state to avoid latches
-	next_state <= state;  --default is to stay in current state
-	--insert statements to decode next_state
-	case (state) is
+	--Current state process
+	process (cstate)
+	begin
+		case cstate is
+			when st_reset =>
 
-	when st_reset =>
-		next_state <= st_cnv;
+			when st_read_ADC =>
+			when st_next_ch =>	
+			when others =>
+				null;
+		end case;
+	end process;
 
-	when st_cnv =>
-		if (count_cnv > TcnvH)  then  --to stay 50 clock cycles(500 ns --modified on 04/08/2018, old=count_cnv > 1
-		  next_state <= st_L17_1;
-		else
-		  next_state <= st_cnv;
-		end if;  
 
-	when st_L17_1 =>
-		next_state <= st_H17_1;
-		
-	when st_H17_1 =>
-		if count_data > 15  then 			-- to be carefully checked !!! --to acquire 17 bits
-		  next_state <= st_L0;
-		else
-		  next_state <= st_L17_1;
-		end if;  
-
-	when st_L0 =>
-		next_state <= st_H0;   				-- to acquire the last bit
-		
-	when st_H0 =>      					   --We should remain in this state after FIFO_FULL='1'   
-		next_state <= st_FIFO_write;  
-    
-    when st_FIFO_write =>
-        next_state <= st_CYCwait;
-    
-    when st_CYCwait =>
-        if(counter_cyc > Tcyc) then
-            next_state <= st_CYCend;
-        else
-            next_state <= st_CYCwait;
-        end if;
-	
-    when st_CYCend =>
-        if FIFO_FULL='1' then
-            next_state <= st_CYCend;
-        else
-            next_state <= st_cnv;
-        end if;
-        
-	when others =>
-		next_state <= st_reset;
-	end case;      
-end process;
-
-FIFO_READ_ACK  <= FIFO_FULL;
 
 end Behavioral;

@@ -10,33 +10,30 @@ use IEEE.NUMERIC_STD.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
-entity AD4002_CNV is
+entity AD7982_CNV is
     generic(tquiet1 : integer :=50);
     Port(
     rst_n     : in std_logic;
     clk       : in std_logic;
 
-    addr       : in std_logic_vector(31 downto 0);
     enable_tx  : in std_logic;
-    spi_cs     : in std_logic_vector(1 downto 0);
+    spi_cs     : in std_logic;
     spi_mosi   : in std_logic;
     
-    cnv        : out std_logic_vector(1 downto 0);
+    cnv        : out std_logic;
     sdi        : out std_logic;
     enable_spi : out std_logic
     );
-end AD4002_CNV;
+end AD7982_CNV;
 
-architecture Behavioral of AD4002_CNV is
+architecture Behavioral of AD7982_CNV is
 
 type state is (idle, tquiet, spi_tx);
 signal cstate, nstate : state;
-signal addr_sig : integer;
 
 signal count : integer;
 
 begin
-addr_sig<=to_integer(unsigned(addr(1 downto 0)));
 
     --Current state logic.
     process(clk, rst_n)
@@ -65,15 +62,15 @@ addr_sig<=to_integer(unsigned(addr(1 downto 0)));
     begin
         case cstate is
             when idle =>
-                cnv<=(others=>'0');
+                cnv<='0';
                 sdi<='1';
                 enable_spi<='0';
             when tquiet =>
-                cnv(addr_sig)<='1';
+                cnv<='1';
                 sdi<='1';
                 enable_spi<='0';
             when spi_tx =>
-                cnv(addr_sig)<='1';
+                cnv<='1';
                 sdi<=spi_mosi;
                 enable_spi<='1';
         end case;      
@@ -83,7 +80,7 @@ addr_sig<=to_integer(unsigned(addr(1 downto 0)));
     begin
         case cstate is
             when idle =>
-                if enable_tx = '1' and addr_sig<2 then
+                if enable_tx = '1' then
                     nstate<=tquiet;
                 else 
                     nstate<=idle;
@@ -95,7 +92,7 @@ addr_sig<=to_integer(unsigned(addr(1 downto 0)));
                     nstate<=tquiet;
                 end if;
             when spi_tx =>
-                if spi_cs(addr_sig) = '1' then
+                if spi_cs = '1' then
                     nstate<=idle;
                 else
                     nstate<=spi_tx;
