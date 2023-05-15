@@ -58,15 +58,19 @@ begin
         end if;
     end process;
 
-    process(cstate, clk)
+    process(cstate, clk, count)
     begin
         case cstate is
             when idle =>
-                cnv<='0';
+                cnv<=spi_cs;
                 sdi<='1';
                 enable_spi<='0';
             when tquiet =>
-                cnv<='1';
+                if count = tcnv/3 then
+                    cnv<='0';
+                else
+                    cnv<='1';
+                end if;
                 sdi<='1';
                 enable_spi<='0';
             when spi_tx =>
