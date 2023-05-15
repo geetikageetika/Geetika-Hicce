@@ -96,7 +96,7 @@ end HiCCEv2_v2022;
 
 architecture Behavioral of HiCCEv2_v2022 is
 
-    COMPONENT intan_RHA_ADC_v0
+    COMPONENT intan_RHA_ADC_v1
       PORT (
     --------------------------------
     -- FMC Interface: COMMON SIGNALS
@@ -240,7 +240,7 @@ begin
 --------------------------
 -- INTAN A CHIP PORT MAP
 --------------------------
-INTAN_CHIP_A: intan_RHA_ADC_v0
+INTAN_CHIP_A: intan_RHA_ADC_v1
 	port map (
 -- FMC Interface: COMMON SIGNALS  
 				SYS_CLK         => Sys_Clock,
@@ -275,7 +275,7 @@ INTAN_CHIP_A: intan_RHA_ADC_v0
 --------------------------
 -- INTAN B CHIP PORT MAP
 --------------------------
-INTAN_CHIP_B: intan_RHA_ADC_v0
+INTAN_CHIP_B: intan_RHA_ADC_v1
 	port map (
 -- FMC Interface: COMMON SIGNALS  
 				SYS_CLK         => Sys_Clock,
@@ -310,7 +310,7 @@ INTAN_CHIP_B: intan_RHA_ADC_v0
 -------------------------
 -- INTAN C CHIP PORT MAP
 -------------------------
-INTAN_CHIP_C: intan_RHA_ADC_v0
+INTAN_CHIP_C: intan_RHA_ADC_v1
 	port map (
 -- FMC Interface: COMMON SIGNALS  
 				SYS_CLK         => Sys_Clock,
@@ -345,7 +345,7 @@ INTAN_CHIP_C: intan_RHA_ADC_v0
 --------------------------
 -- INTAN D CHIP PORT MAP
 --------------------------
-INTAN_CHIP_D: intan_RHA_ADC_v0
+INTAN_CHIP_D: intan_RHA_ADC_v1
 	port map (
 -- FMC Interface: COMMON SIGNALS  
 				SYS_CLK         => Sys_Clock,

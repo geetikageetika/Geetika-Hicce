@@ -11,7 +11,7 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity AD7982_CNV is
-    generic(tquiet1 : integer :=50);
+    generic(tcnv : integer :=50);
     Port(
     rst_n     : in std_logic;
     clk       : in std_logic;
@@ -70,7 +70,7 @@ begin
                 sdi<='1';
                 enable_spi<='0';
             when spi_tx =>
-                cnv<='1';
+                cnv<=spi_cs;
                 sdi<=spi_mosi;
                 enable_spi<='1';
         end case;      
@@ -86,7 +86,7 @@ begin
                     nstate<=idle;
                 end if;
             when tquiet =>
-                if count >= 2*tquiet1 then
+                if count >= tcnv then
                     nstate<=spi_tx;
                 else 
                     nstate<=tquiet;

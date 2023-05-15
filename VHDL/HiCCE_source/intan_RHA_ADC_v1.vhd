@@ -36,7 +36,7 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity intan_RHA_ADC_v1 is
- GENERIC(SYS_CLK_FREQ : INTEGER :=250);
+ GENERIC(SYS_CLK_T_ns : INTEGER :=250);
  PORT (
 --------------------------------
 -- COMMON INTERFACE SIGNALS
@@ -77,6 +77,11 @@ end intan_RHA_ADC_v1;
 
 architecture Behavioral of intan_RHA_ADC_v1 is
 
+-----------------------------------------------------------------------------------------------
+-------------- FIFO Primitive component ---------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+
 COMPONENT FIFO_64k_16bit_v0
 
   PORT (
@@ -92,6 +97,20 @@ COMPONENT FIFO_64k_16bit_v0
   );
 END COMPONENT;
 
+
+-----------------------------------------------------------------------------------------------
+-------------- SYNCHRONOUS COUNTER FOR SYNTETIC GENERATED SIGNAL ---------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+COMPONENT synchronous_counter is
+	port (
+	  clk         : in std_logic;
+	  reset       : in std_logic;
+	  count       : out std_logic_vector(15 downto 0)
+	);
+  end COMPONENT;
+
+  signal virtual_count : std_logic_vector(15 downto 0);
 -----------------------------------------------------------------------------------------------
 -------------- SPI CONTROL SIGNALS AND COMPONENTS ---------------------------------------------
 -----------------------------------------------------------------------------------------------
@@ -119,7 +138,7 @@ PORT(
 END COMPONENT spi_master;
 
 COMPONENT AD7982_CNV is
-    generic(tquiet1 : integer :=50);
+    generic(tcnv : integer :=50);
     Port(
     rst_n     : in std_logic;
     clk       : in std_logic;
@@ -134,18 +153,8 @@ COMPONENT AD7982_CNV is
     );
 end COMPONENT;
 
-TYPE CFG_REG is record
-    addr        : std_logic_vector(31 downto 0);
-    clk_div     : std_logic_vector(31 downto 0);
-    cpol        : std_logic;
-    cpha        : std_logic;
-    cont        : std_logic;
-    io          : std_logic;
-end record CFG_REG;
-
-signal SPI : CFG_REG;
-
-constant SPI_CLK_DIV : STD_LOGIC_VECTOR(31 DOWNTO 0):=STD_LOGIC_VECTOR(TO_UNSIGNED(SYS_CLK_FREQ,32));
+signal spi_clk_div : std_logic_vector(31 downto 0);
+signal spi_data : std_logic_vector(17 downto 0);
 
 signal mon_address : STD_LOGIC_VECTOR(31 DOWNTO 0);
 signal ss_n : STD_LOGIC_VECTOR(0 DOWNTO 0);
@@ -157,43 +166,22 @@ signal adc_busy : std_logic;
 
 signal CONFIG_RES_TEMP   	: STD_LOGIC_VECTOR(10 downto 0);
 
----------------------------------------------------------
--- Internal signals (same as ports but with prefix "sig_")
--- Signals for the INTEN CHIP
----------------------------------------------------------
-signal sig_SDO_data_in		: STD_LOGIC;	--for debuging channel by channel only !
-signal sig_CNV_convert_out	: STD_LOGIC;			
-signal sig_SCLK_clock_out	: STD_LOGIC;
-
------------------------------------------------------------
-
-signal sel_out					: STD_LOGIC_VECTOR(4 DOWNTO 0);	--for debuging channel by channel only !
-
--- for the new process to read ADC
-  constant tconv: Integer := 72 ; -- 500 ns < TcnvH < 710 ns
--- larger than the 710ns ADC max conversion time
--- acording to the application note
-    constant TcnvH  : std_logic_vector(6 downto 0):="1000110";   -- 10 ns < TcnvH 
-    constant TacqL  : Integer := 72 ; -- 290 ns < TacqL
-    constant TstepH : Integer := 30 ; 
-    constant Tcyc   : std_logic_vector(6 downto 0) := "1101110"; -- 1000 ns
 
 ------------------------------
 --for new state machine
 ------------------------------
   type state_type is (st_reset, st_read_ADC, st_next_ch); 
   signal cstate, nstate : state_type; 
-  signal count_cnv    : std_logic_vector(6 downto 0); --to count 2 (up to 3) clock cycles (10ns < "Tcnvh" < 500ns)
-  signal count_wcnv   : std_logic_vector(6 downto 0); --to count 72 (up to 127) clock cycles (500ns < Tconv < 710ns)
-  signal count_data   : std_logic_vector(4 downto 0); --to count 17 (up to 31) clock cycles (the 18 bits of serial data)	
-  signal counter_out  : std_logic_vector(15 downto 0);  
-  signal counter_cyc  : std_logic_vector(6 downto 0);
-  
+
+------------------------------
+--FIFO Signals
+------------------------------
+
   signal FIFO_FULL    : STD_LOGIC;
 
   signal fifo_wr_en, fifo_wr_en_new : std_logic;
 
-  signal data_adc: std_logic_vector (17 downto 0);
+  signal data_adc: std_logic_vector (15 downto 0);
 
 --------------------------------
 -- Auto read Mode
@@ -218,23 +206,43 @@ begin
 
 	CONN_ALL			<= CONFIG_RES_TEMP(3);
  
-	virtual_mode		<= CONFIG_RES_TEMP(0);        -- To be implemented
+	virtual_mode		<= CONFIG_RES_TEMP(0);       
 
 	settle      		<= CONFIG_RES_TEMP(10) when MODE_INTAN = '0' else
 	                       (sys_reset or CONFIG_RES_TEMP(10));	
-	sel4     	 		<= CONFIG_RES_TEMP(9) when MODE_INTAN = '0' else
-                           'Z';
-    sel3 			   	<= CONFIG_RES_TEMP(8) when MODE_INTAN = '0' else
-	                       'Z';  
-	sel2_sync   		<= CONFIG_RES_TEMP(7) when MODE_INTAN = '0' else
-	                       'Z';
-	sel1_step   		<= CONFIG_RES_TEMP(6) when MODE_INTAN = '0' else
-	                       CLK_SWITCH_INT;	                     	                                    
-	sel0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
-	                       (not sys_reset and CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_reset; now you can reset intan through register also
 
-	
-	MODE <= '0' when MODE_INTAN = '0' else '1';
+	SEL1_step   		<= CONFIG_RES_TEMP(6) when MODE_INTAN = '0' else
+	                       step_intan;	                
+						        	                                    
+	SEL0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
+	                       (reset_intan or CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_reset; now you can reset intan through register also
+						   
+
+--inout port assignment for SEL(2:4)
+	process (MODE_INTAN, CONFIG_RES_TEMP)
+		begin
+		if (MODE_INTAN = '0') then
+			SEL2_SYNC  <= CONFIG_RES_TEMP(7);
+			SEL3 <= CONFIG_RES_TEMP(8);
+			SEL4 <= CONFIG_RES_TEMP(9);
+			sync_intan<='0';
+		elsif (MODE_INTAN = '1') then
+			sync_intan  <= SEL2_SYNC;
+			SEL3 <= 'Z';
+			SEL4 <= 'Z';			
+		end if;
+	end process;
+		                       	
+	MODE <= MODE_INTAN;
+
+
+	-- Instantiate the synchronous_counter component
+	virtual_counter: synchronous_counter
+    port map (
+      clk         => SYS_CLK,
+      reset       => virtual_mode,
+      count       => virtual_count
+    );
 
 ----------------------------------------------------------------------------
 -- LEDs Logic 
@@ -249,11 +257,19 @@ begin
 ---------------------------------------------------------------------------- 
 
 	mon_address<=(others=>'0');
+	--To achieve 500-710 ns of conversion time and 290 ns of acquisition time
+	--Using a 250 MHz clk and an SPI clk division of 3 (24 ns/bit)
+	--SPI_CLK_T= 2*SYS_CLK_T_ns*SPI_CLK_DIV=2*(4ns)*(3)=24ns
+	--Acquisition time = 24ns * 18 = 432 ns.
+	--Conversion time= 1000ns - 432 ns = 568ns
+	--Conversion time= Conversion Time/SYS_CLK Period=568ns/4ns=142
+	--removing one for state machine latency 
 
+	spi_clk_div<=std_logic_vector(to_unsigned(3,32));
 
     AD7982_CTRL: AD7982_CNV
     generic map(
-      tquiet1 => 50
+      tcnv => 142-1
       )
     Port map(
     rst_n      =>SYS_RESET,
@@ -278,17 +294,37 @@ begin
       enable  => cnv_enable,
       cpol    => '0',
       cpha    => '0',
-      cont    => adc_read, --Set in continous mode
+      cont    => '0', --Set in continous mode
       clk_div_i => SPI_CLK_DIV, 
       addr_i    => mon_address, --SPI.addr -1
-      tx_data => open, 
+      tx_data => (others=>'0'), 
       miso    => SDO_DATA_IN,
       sclk    => SCLK_CLOCK_OUT,
       ss_n    =>ss_n, 
       mosi    => open,
       busy    =>adc_busy,
-      rx_data =>data_adc
+      rx_data =>spi_data
     );
+
+-------------------------------
+-- FIFO Generation (8K_16Bits)
+-------------------------------
+
+ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
+
+  PORT MAP  (
+		      rst 		    => SYS_RESET,                   -- fifo reset is active high
+		      wr_clk 	    => SYS_CLK,                     -- to be checked
+		      rd_clk 	    => FIFO_clk,
+		      din 		    => data_adc, 		-- because we expect only positive values !!!
+		      wr_en 	    => fifo_wr_en_new,               -- modified 22/07/2018, old = fifo_wr_en
+		      rd_en 	    => FIFO_READ_ENB,  				-- same as with DPM --could be ("not empty" and "pipeO_read")
+		      dout 		    => FIFO_DATA_OUT,				-- OUT DATA tobe read from PC
+		      full 		    => FIFO_FULL, --open,    		-- we are not using these flags
+		      empty 	    => FIFO_empty
+            );
+
+    fifo_wr_en_new <= FIFO_WRITE_ENB and fifo_wr_en;
 
 ----------------------------------------------------------------------------
 -- State machine for sequential counting
@@ -333,19 +369,34 @@ begin
 		end case;
 	end process;
 
+	data_adc <= spi_data(17 downto 2) when virtual_mode = '0' else
+			    virtual_count;
+
 	--Current state process
 	process (cstate)
 	begin
 		case cstate is
 			when st_reset =>
-
+				adc_read 	<='0';
+				fifo_wr_en 	<='0';
+				reset_intan <='0';
+				step_intan 	<='0';
 			when st_read_ADC =>
-			when st_next_ch =>	
+				adc_read	<='1';
+				fifo_wr_en	<='0';
+				reset_intan <='1';
+				step_intan 	<='0';			
+			when st_next_ch =>
+				adc_read	<='0';
+				fifo_wr_en	<='1';
+				reset_intan <='1';
+				step_intan 	<='1';	
 			when others =>
-				null;
+				adc_read 	<='0';
+				fifo_wr_en 	<='0';
+				reset_intan <='0';
+				step_intan 	<='0';
 		end case;
 	end process;
-
-
 
 end Behavioral;
