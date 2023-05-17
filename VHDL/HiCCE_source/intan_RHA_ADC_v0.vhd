@@ -210,7 +210,8 @@ LED_TEST_1 <= sel2_sync;   -- TEST LEDs
 ------------------------------------------------------------------
  
 SYNC_PROC: process (sys_reset, DAQ_start, sys_clk, FIFO_FULL, state)
-beginfifo_wr_en'1' OR DAQ_start = '0') then
+begin
+if (sys_reset = '1' OR DAQ_start = '0') then
 		  state <= st_reset;		  
 elsif (sys_clk'event and sys_clk = '1') then
 			state <= next_state;
