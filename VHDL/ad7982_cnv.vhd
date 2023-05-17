@@ -18,17 +18,17 @@ entity AD7982_CNV is
 
     enable_tx  : in std_logic;
     spi_cs     : in std_logic;
-    spi_mosi   : in std_logic;
+    spi_busy   : in std_logic;
     
+  
     cnv        : out std_logic;
-    sdi        : out std_logic;
     enable_spi : out std_logic
     );
 end AD7982_CNV;
 
 architecture Behavioral of AD7982_CNV is
 
-type state is (idle, tquiet, spi_tx);
+type state is (idle, tconv, start_acq, tacq);
 signal cstate, nstate : state;
 
 signal count : integer;
@@ -50,7 +50,7 @@ begin
         if rst_n='0' then
             count<=0;
         elsif rising_edge(clk) then
-            if cstate = tquiet then
+            if cstate = tconv then
                 count<=count+1;
             else
                 count<=0;
@@ -62,44 +62,50 @@ begin
     begin
         case cstate is
             when idle =>
-                cnv<=spi_cs;
-                sdi<='1';
+                cnv<='0';
                 enable_spi<='0';
-            when tquiet =>
-                if count = tcnv/3 then
+            when tconv =>
+                if count >= tcnv/3 and count< (tcnv/3)+5 then
                     cnv<='0';
                 else
                     cnv<='1';
                 end if;
-                sdi<='1';
                 enable_spi<='0';
-            when spi_tx =>
+            when start_acq =>
                 cnv<=spi_cs;
-                sdi<=spi_mosi;
-                enable_spi<='1';
+                enable_spi<='1';                    
+            when tacq =>
+                cnv<=spi_cs;
+                enable_spi<='1';                
         end case;      
     end process;
 
-    process(cstate, enable_tx, spi_cs)
+    process(cstate, enable_tx, spi_busy)
     begin
         case cstate is
             when idle =>
                 if enable_tx = '1' then
-                    nstate<=tquiet;
+                    nstate<=tconv;
                 else 
                     nstate<=idle;
                 end if;
-            when tquiet =>
+            when tconv =>
                 if count >= tcnv then
-                    nstate<=spi_tx;
+                    nstate<=start_acq;
                 else 
-                    nstate<=tquiet;
+                    nstate<=tconv;
                 end if;
-            when spi_tx =>
-                if spi_cs = '1' then
+            when start_acq =>
+                if spi_busy ='1' then
+                    nstate<=tacq;
+                else
+                    nstate<=start_acq;
+                end if;
+            when tacq =>
+                if spi_busy = '0' then
                     nstate<=idle;
                 else
-                    nstate<=spi_tx;
+                    nstate<=tacq;
                 end if;
         end case;
     end process;

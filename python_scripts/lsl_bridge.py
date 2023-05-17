@@ -12,11 +12,11 @@ stream_type = 'EEG'
 source_id = 'HiCCE_Version2.0_2023_April'
 chunk_size = chunk_size
 format = 'int16'
-n_cha = 128
+n_cha = 64
 l_cha = [str(i) for i in range(n_cha)]
 units = 'uV'
 manufacturer = 'MLab_ICTP'
-sample_rate = 250
+sample_rate = 32768
 
 
  

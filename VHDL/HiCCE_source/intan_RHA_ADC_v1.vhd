@@ -145,10 +145,9 @@ COMPONENT AD7982_CNV is
 
     enable_tx  : in std_logic;
     spi_cs     : in std_logic;
-    spi_mosi   : in std_logic;
+    spi_busy   : in std_logic;
     
     cnv        : out std_logic;
-    sdi        : out std_logic;
     enable_spi : out std_logic
     );
 end COMPONENT;
@@ -276,9 +275,8 @@ begin
     clk        =>SYS_CLK,
     enable_tx  => adc_read, --Start ADC read capture
     spi_cs     => ss_n(0),
-    spi_mosi   => '0',
+    spi_busy   => adc_busy,
     cnv        => CNV_CONVERT_OUT,
-    sdi        => open,
     enable_spi => cnv_enable
     );
 
@@ -294,7 +292,7 @@ begin
       enable  => cnv_enable,
       cpol    => '0',
       cpha    => '0',
-      cont    => '0', --Set in continous mode
+      cont    => '0',
       clk_div_i => SPI_CLK_DIV, 
       addr_i    => mon_address, --SPI.addr -1
       tx_data => (others=>'0'), 
@@ -359,7 +357,7 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 					nstate<=st_next_ch;
 				end if;			
 			when st_next_ch =>
-				if DAQ_start = '1' then
+				if DAQ_start = '1' and adc_busy = '0' then
 					nstate<=st_read_ADC;
 				else
 					nstate<=st_reset;
