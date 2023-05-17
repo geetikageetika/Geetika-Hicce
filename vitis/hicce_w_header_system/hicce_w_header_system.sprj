@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ASCII"?>
+<systemproject:SystemProject xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sdkproject="http://www.xilinx.com/sdkproject" xmlns:systemproject="http://www.xilinx.com/systemproject" name="hicce_w_header_system" platform="/opt/my_gits/HICCE/hicce-project/hicce_w_header/vitis/HICCEv2_w_header/export/HICCEv2_w_header/HICCEv2_w_header.xpfm" platformUID="xilinx:zedboard::0.0(custom)" sysConfig="HICCEv2_w_header" runtime="cpp" rootFSLocation="" linuxImage="" sysroot="">
+  <configuration name="Debug" id="com.xilinx.sdx.system.managedbuilder.debugConfiguration.598596764">
+    <configBuildOptions xsi:type="systemproject:SystemOptions">
+      <applications name="hicce_w_header" domainName="freertos10_xilinx_ps7_cortexa9_0" domainPrettyName="freertos10_xilinx_ps7_cortexa9_0" appBuildConfig="Debug"/>
+      <options xsi:type="sdkproject:SdkOptions" generateSdCard="true"/>
+    </configBuildOptions>
+    <lastBuildOptions xsi:type="systemproject:SystemOptions">
+      <applications name="hicce_w_header" domainName="freertos10_xilinx_ps7_cortexa9_0" domainPrettyName="freertos10_xilinx_ps7_cortexa9_0" appBuildConfig="Debug"/>
+      <options xsi:type="sdkproject:SdkOptions" generateSdCard="true"/>
+    </lastBuildOptions>
+  </configuration>
+  <configuration name="Release" id="com.xilinx.sdx.system.managedbuilder.releaseConfiguration.837793356">
+    <configBuildOptions xsi:type="systemproject:SystemOptions">
+      <applications name="hicce_w_header" domainName="freertos10_xilinx_ps7_cortexa9_0" domainPrettyName="freertos10_xilinx_ps7_cortexa9_0" appBuildConfig="Release"/>
+      <options xsi:type="sdkproject:SdkOptions" generateSdCard="true"/>
+    </configBuildOptions>
+  </configuration>
+</systemproject:SystemProject>
