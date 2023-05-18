@@ -20,7 +20,7 @@ entity AD7982_CNV is
     spi_cs     : in std_logic;
     spi_busy   : in std_logic;
     
-  
+    busy       : out std_logic;
     cnv        : out std_logic;
     enable_spi : out std_logic
     );
@@ -50,7 +50,7 @@ begin
         if rst_n='0' then
             count<=0;
         elsif rising_edge(clk) then
-            if cstate = tconv then
+            if cstate = tconv then 
                 count<=count+1;
             else
                 count<=0;
@@ -64,6 +64,7 @@ begin
             when idle =>
                 cnv<='0';
                 enable_spi<='0';
+                busy <='0';
             when tconv =>
                 if count >= tcnv/3 and count< (tcnv/3)+5 then
                     cnv<='0';
@@ -71,12 +72,15 @@ begin
                     cnv<='1';
                 end if;
                 enable_spi<='0';
+                busy <='1';
             when start_acq =>
                 cnv<=spi_cs;
-                enable_spi<='1';                    
+                enable_spi<='1';
+                busy <='1';                    
             when tacq =>
                 cnv<=spi_cs;
-                enable_spi<='1';                
+                enable_spi<='0';
+                busy <='1';                
         end case;      
     end process;
 
@@ -90,7 +94,7 @@ begin
                     nstate<=idle;
                 end if;
             when tconv =>
-                if count >= tcnv then
+                if count >= tcnv - 5 then --5 clock cycles of the spi driver to execute the task
                     nstate<=start_acq;
                 else 
                     nstate<=tconv;

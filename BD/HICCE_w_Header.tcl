@@ -587,7 +587,7 @@ proc create_root_design { parentCell } {
   set system_ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_0 ]
   set_property -dict [list \
     CONFIG.C_MON_TYPE {NATIVE} \
-    CONFIG.C_NUM_OF_PROBES {26} \
+    CONFIG.C_NUM_OF_PROBES {36} \
     CONFIG.C_PROBE0_TYPE {0} \
     CONFIG.C_PROBE10_TYPE {0} \
     CONFIG.C_PROBE11_TYPE {0} \
@@ -606,7 +606,17 @@ proc create_root_design { parentCell } {
     CONFIG.C_PROBE23_TYPE {0} \
     CONFIG.C_PROBE24_TYPE {0} \
     CONFIG.C_PROBE25_TYPE {0} \
+    CONFIG.C_PROBE26_TYPE {0} \
+    CONFIG.C_PROBE27_TYPE {0} \
+    CONFIG.C_PROBE28_TYPE {0} \
+    CONFIG.C_PROBE29_TYPE {0} \
     CONFIG.C_PROBE2_TYPE {0} \
+    CONFIG.C_PROBE30_TYPE {0} \
+    CONFIG.C_PROBE31_TYPE {0} \
+    CONFIG.C_PROBE32_TYPE {0} \
+    CONFIG.C_PROBE33_TYPE {0} \
+    CONFIG.C_PROBE34_TYPE {0} \
+    CONFIG.C_PROBE35_TYPE {0} \
     CONFIG.C_PROBE3_TYPE {0} \
     CONFIG.C_PROBE4_TYPE {0} \
     CONFIG.C_PROBE5_TYPE {0} \
@@ -680,51 +690,65 @@ proc create_root_design { parentCell } {
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets CombIntan_w_header_0_cd_maxis_tdata]
   connect_bd_net -net CombIntan_w_header_0_cd_maxis_tvalid [get_bd_pins CombIntan_w_header_0/cd_maxis_tvalid] [get_bd_pins comblock_1/fifo_we_i] [get_bd_pins system_ila_0/probe4]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets CombIntan_w_header_0_cd_maxis_tvalid]
-  connect_bd_net -net FIFO_empty [get_bd_pins HiCCEv2_v2022_0/FIFO_empty] [get_bd_pins util_vector_logic_3/Op1]
-  connect_bd_net -net HiCCEv2_v2022_0_ADC_CNV [get_bd_ports ADC_CNV_0] [get_bd_pins HiCCEv2_v2022_0/ADC_CNV] [get_bd_pins system_ila_0/probe13]
+  connect_bd_net -net DBG_COUNT_AB [get_bd_pins CombIntan_w_header_0/DBG_COUNT_AB] [get_bd_pins system_ila_0/probe16]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_COUNT_AB]
+  connect_bd_net -net DBG_MAX_COUNT_AB [get_bd_pins CombIntan_w_header_0/DBG_MAX_COUNT_AB] [get_bd_pins system_ila_0/probe17]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_MAX_COUNT_AB]
+  connect_bd_net -net DBG_STATE_AB [get_bd_pins CombIntan_w_header_0/DBG_STATE_AB] [get_bd_pins system_ila_0/probe18]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_STATE_AB]
+  connect_bd_net -net DBG_STATE_CD [get_bd_pins CombIntan_w_header_0/DBG_STATE_CD] [get_bd_pins system_ila_0/probe19]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets DBG_STATE_CD]
+  connect_bd_net -net FIFO_empty [get_bd_pins HiCCEv2_v2022_0/FIFO_empty] [get_bd_pins system_ila_0/probe20] [get_bd_pins util_vector_logic_3/Op1]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets FIFO_empty]
+  connect_bd_net -net HiCCEv2_v2022_0_ADC_CNV [get_bd_ports ADC_CNV_0] [get_bd_pins HiCCEv2_v2022_0/ADC_CNV] [get_bd_pins system_ila_0/probe22]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_ADC_CNV]
-  connect_bd_net -net HiCCEv2_v2022_0_ADC_SCLK [get_bd_ports ADC_SCLK_0] [get_bd_pins HiCCEv2_v2022_0/ADC_SCLK] [get_bd_pins system_ila_0/probe14]
+  connect_bd_net -net HiCCEv2_v2022_0_ADC_SCLK [get_bd_ports ADC_SCLK_0] [get_bd_pins HiCCEv2_v2022_0/ADC_SCLK] [get_bd_pins system_ila_0/probe23]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_ADC_SCLK]
-  connect_bd_net -net HiCCEv2_v2022_0_Ack_intan [get_bd_pins HiCCEv2_v2022_0/Ack_intan] [get_bd_pins comblock_0/reg0_i] [get_bd_pins system_ila_0/probe12]
+  connect_bd_net -net HiCCEv2_v2022_0_Ack_intan [get_bd_pins HiCCEv2_v2022_0/Ack_intan] [get_bd_pins comblock_0/reg0_i] [get_bd_pins system_ila_0/probe21]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Ack_intan]
   connect_bd_net -net HiCCEv2_v2022_0_Conn_All [get_bd_ports Conn_All_0] [get_bd_pins HiCCEv2_v2022_0/Conn_All]
-  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_A [get_bd_pins CombIntan_w_header_0/DataIn_A] [get_bd_pins HiCCEv2_v2022_0/Data_intan_A] [get_bd_pins system_ila_0/probe15]
+  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_A [get_bd_pins CombIntan_w_header_0/DataIn_A] [get_bd_pins HiCCEv2_v2022_0/Data_intan_A] [get_bd_pins system_ila_0/probe24]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Data_intan_A]
-  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_B [get_bd_pins CombIntan_w_header_0/DataIn_B] [get_bd_pins HiCCEv2_v2022_0/Data_intan_B] [get_bd_pins system_ila_0/probe16]
+  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_B [get_bd_pins CombIntan_w_header_0/DataIn_B] [get_bd_pins HiCCEv2_v2022_0/Data_intan_B] [get_bd_pins system_ila_0/probe25]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Data_intan_B]
-  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_C [get_bd_pins CombIntan_w_header_0/DataIn_C] [get_bd_pins HiCCEv2_v2022_0/Data_intan_C] [get_bd_pins system_ila_0/probe17]
+  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_C [get_bd_pins CombIntan_w_header_0/DataIn_C] [get_bd_pins HiCCEv2_v2022_0/Data_intan_C] [get_bd_pins system_ila_0/probe26]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Data_intan_C]
-  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_D [get_bd_pins CombIntan_w_header_0/DataIn_D] [get_bd_pins HiCCEv2_v2022_0/Data_intan_D] [get_bd_pins system_ila_0/probe18]
+  connect_bd_net -net HiCCEv2_v2022_0_Data_intan_D [get_bd_pins CombIntan_w_header_0/DataIn_D] [get_bd_pins HiCCEv2_v2022_0/Data_intan_D] [get_bd_pins system_ila_0/probe27]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Data_intan_D]
-  connect_bd_net -net HiCCEv2_v2022_0_Data_valid [get_bd_pins CombIntan_w_header_0/DataIn_valid] [get_bd_pins HiCCEv2_v2022_0/Data_valid] [get_bd_pins counter64_0/clk] [get_bd_pins system_ila_0/probe19]
+  connect_bd_net -net HiCCEv2_v2022_0_Data_valid [get_bd_pins CombIntan_w_header_0/DataIn_valid] [get_bd_pins HiCCEv2_v2022_0/Data_valid] [get_bd_pins counter64_0/clk] [get_bd_pins system_ila_0/probe28]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Data_valid]
   connect_bd_net -net HiCCEv2_v2022_0_Elec_Test [get_bd_ports Elec_Test_0] [get_bd_pins HiCCEv2_v2022_0/Elec_Test]
   connect_bd_net -net HiCCEv2_v2022_0_Elec_Test_en [get_bd_ports Elec_Test_en_0] [get_bd_pins HiCCEv2_v2022_0/Elec_Test_en]
   connect_bd_net -net HiCCEv2_v2022_0_LED_HiCCE_AB [get_bd_ports LED_HiCCE_AB_0] [get_bd_pins HiCCEv2_v2022_0/LED_HiCCE_AB]
-  connect_bd_net -net HiCCEv2_v2022_0_Mode [get_bd_ports Mode_0] [get_bd_pins HiCCEv2_v2022_0/Mode] [get_bd_pins system_ila_0/probe20]
+  connect_bd_net -net HiCCEv2_v2022_0_Mode [get_bd_ports Mode_0] [get_bd_pins HiCCEv2_v2022_0/Mode] [get_bd_pins system_ila_0/probe29]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Mode]
-  connect_bd_net -net HiCCEv2_v2022_0_Sel0_Reset [get_bd_ports Sel0_Reset_0] [get_bd_pins HiCCEv2_v2022_0/Sel0_Reset]
-  connect_bd_net -net HiCCEv2_v2022_0_Sel1_Step [get_bd_ports Sel1_Step_0] [get_bd_pins HiCCEv2_v2022_0/Sel1_Step] [get_bd_pins system_ila_0/probe21]
+  connect_bd_net -net HiCCEv2_v2022_0_Sel0_Reset [get_bd_ports Sel0_Reset_0] [get_bd_pins HiCCEv2_v2022_0/Sel0_Reset] [get_bd_pins system_ila_0/probe30]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Sel0_Reset]
+  connect_bd_net -net HiCCEv2_v2022_0_Sel1_Step [get_bd_ports Sel1_Step_0] [get_bd_pins HiCCEv2_v2022_0/Sel1_Step] [get_bd_pins system_ila_0/probe31]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets HiCCEv2_v2022_0_Sel1_Step]
   connect_bd_net -net HiCCEv2_v2022_0_Settle [get_bd_ports Settle_0] [get_bd_pins HiCCEv2_v2022_0/Settle]
-  connect_bd_net -net Net1 [get_bd_ports Sel2_Sync_0] [get_bd_pins HiCCEv2_v2022_0/Sel2_Sync] [get_bd_pins system_ila_0/probe22] [get_bd_pins system_ila_0/probe25]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets Net1]
+  connect_bd_net -net Net [get_bd_ports Sel2_Sync_0] [get_bd_pins HiCCEv2_v2022_0/Sel2_Sync] [get_bd_pins system_ila_0/probe32]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets Net]
   connect_bd_net -net Net2 [get_bd_ports Sel3_0] [get_bd_pins HiCCEv2_v2022_0/Sel3]
   connect_bd_net -net Net3 [get_bd_ports Sel4_0] [get_bd_pins HiCCEv2_v2022_0/Sel4]
   connect_bd_net -net comblock_0_fifo_afull_o [get_bd_pins CombIntan_w_header_0/FIFO_AFULL_AB] [get_bd_pins comblock_0/fifo_afull_o] [get_bd_pins system_ila_0/probe8]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_fifo_afull_o]
   connect_bd_net -net comblock_0_fifo_full_o [get_bd_pins comblock_0/fifo_full_o] [get_bd_pins util_vector_logic_1/Op1]
-  connect_bd_net -net comblock_0_reg0_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_A] [get_bd_pins comblock_0/reg0_o]
-  connect_bd_net -net comblock_0_reg1_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_B] [get_bd_pins comblock_0/reg1_o]
-  connect_bd_net -net comblock_0_reg2_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_C] [get_bd_pins comblock_0/reg2_o]
-  connect_bd_net -net comblock_0_reg3_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_D] [get_bd_pins comblock_0/reg3_o]
-  connect_bd_net -net comblock_0_reg4_o [get_bd_pins HiCCEv2_v2022_0/Read_intan] [get_bd_pins comblock_0/reg4_o]
+  connect_bd_net -net comblock_0_reg0_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_A] [get_bd_pins comblock_0/reg0_o] [get_bd_pins system_ila_0/probe9]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg0_o]
+  connect_bd_net -net comblock_0_reg1_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_B] [get_bd_pins comblock_0/reg1_o] [get_bd_pins system_ila_0/probe10]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg1_o]
+  connect_bd_net -net comblock_0_reg2_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_C] [get_bd_pins comblock_0/reg2_o] [get_bd_pins system_ila_0/probe11]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg2_o]
+  connect_bd_net -net comblock_0_reg3_o [get_bd_pins HiCCEv2_v2022_0/Config_Res_intan_D] [get_bd_pins comblock_0/reg3_o] [get_bd_pins system_ila_0/probe12]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg3_o]
+  connect_bd_net -net comblock_0_reg4_o [get_bd_pins HiCCEv2_v2022_0/Read_intan] [get_bd_pins comblock_0/reg4_o] [get_bd_pins system_ila_0/probe13]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg4_o]
   connect_bd_net -net comblock_0_reg5_o [get_bd_pins comblock_0/reg5_o] [get_bd_pins util_vector_logic_0/Op2]
-  connect_bd_net -net comblock_0_reg6_o [get_bd_pins CombIntan_w_header_0/nsasmples] [get_bd_pins comblock_0/reg6_o] [get_bd_pins system_ila_0/probe9]
+  connect_bd_net -net comblock_0_reg6_o [get_bd_pins CombIntan_w_header_0/nsasmples] [get_bd_pins comblock_0/reg6_o] [get_bd_pins system_ila_0/probe14]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg6_o]
-  connect_bd_net -net comblock_0_reg7_o [get_bd_pins comblock_0/reg7_o] [get_bd_pins system_ila_0/probe10] [get_bd_pins xlslice_0/Din]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_0_reg7_o]
-  connect_bd_net -net comblock_1_fifo_afull_o [get_bd_pins CombIntan_w_header_0/FIFO_AFULL_CD] [get_bd_pins comblock_1/fifo_afull_o] [get_bd_pins system_ila_0/probe11]
+  connect_bd_net -net comblock_0_reg7_o [get_bd_pins comblock_0/reg7_o] [get_bd_pins xlslice_0/Din]
+  connect_bd_net -net comblock_1_fifo_afull_o [get_bd_pins CombIntan_w_header_0/FIFO_AFULL_CD] [get_bd_pins comblock_1/fifo_afull_o] [get_bd_pins system_ila_0/probe15]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets comblock_1_fifo_afull_o]
   connect_bd_net -net comblock_1_fifo_full_o [get_bd_pins comblock_1/fifo_full_o] [get_bd_pins util_vector_logic_2/Op1]
   connect_bd_net -net counter64_0_q [get_bd_pins CombIntan_w_header_0/timestamp_i] [get_bd_pins counter64_0/q]
@@ -732,11 +756,12 @@ proc create_root_design { parentCell } {
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_pins rst_ps7_0_250M/ext_reset_in]
   connect_bd_net -net rst_ps7_0_250M_peripheral_aresetn [get_bd_pins CombIntan_w_header_0/sys_rstn] [get_bd_pins comblock_0/axil_aresetn] [get_bd_pins comblock_1/axil_aresetn] [get_bd_pins counter64_0/rstn] [get_bd_pins ps7_0_axi_periph/ARESETN] [get_bd_pins ps7_0_axi_periph/M00_ARESETN] [get_bd_pins ps7_0_axi_periph/M01_ARESETN] [get_bd_pins ps7_0_axi_periph/S00_ARESETN] [get_bd_pins rst_ps7_0_250M/peripheral_aresetn] [get_bd_pins util_vector_logic_0/Op1]
   connect_bd_net -net util_vector_logic_0_Res [get_bd_pins HiCCEv2_v2022_0/Sys_Reset] [get_bd_pins util_vector_logic_0/Res]
-  connect_bd_net -net util_vector_logic_1_Res [get_bd_pins CombIntan_w_header_0/ab_maxis_tready] [get_bd_pins system_ila_0/probe23] [get_bd_pins util_vector_logic_1/Res]
+  connect_bd_net -net util_vector_logic_1_Res [get_bd_pins CombIntan_w_header_0/ab_maxis_tready] [get_bd_pins system_ila_0/probe33] [get_bd_pins util_vector_logic_1/Res]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets util_vector_logic_1_Res]
-  connect_bd_net -net util_vector_logic_2_Res [get_bd_pins CombIntan_w_header_0/cd_maxis_tready] [get_bd_pins system_ila_0/probe24] [get_bd_pins util_vector_logic_2/Res]
+  connect_bd_net -net util_vector_logic_2_Res [get_bd_pins CombIntan_w_header_0/cd_maxis_tready] [get_bd_pins system_ila_0/probe34] [get_bd_pins util_vector_logic_2/Res]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets util_vector_logic_2_Res]
-  connect_bd_net -net util_vector_logic_3_Res [get_bd_pins CombIntan_w_header_0/DataIn_ack] [get_bd_pins util_vector_logic_3/Res]
+  connect_bd_net -net util_vector_logic_3_Res [get_bd_pins CombIntan_w_header_0/DataIn_ack] [get_bd_pins system_ila_0/probe35] [get_bd_pins util_vector_logic_3/Res]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets util_vector_logic_3_Res]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins HiCCEv2_v2022_0/ADC_SDO_VIRTUAL_A] [get_bd_pins xlconstant_1/dout]
   connect_bd_net -net xlslice_0_Dout [get_bd_pins CombIntan_w_header_0/sys_en] [get_bd_pins xlslice_0/Dout]
 

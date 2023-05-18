@@ -77,6 +77,8 @@ end intan_RHA_ADC_v1;
 
 architecture Behavioral of intan_RHA_ADC_v1 is
 
+signal sys_resetn : std_logic;
+
 -----------------------------------------------------------------------------------------------
 -------------- FIFO Primitive component ---------------------------------------------
 -----------------------------------------------------------------------------------------------
@@ -147,7 +149,8 @@ COMPONENT AD7982_CNV is
     spi_cs     : in std_logic;
     spi_busy   : in std_logic;
     
-    cnv        : out std_logic;
+    busy       : out std_logic;
+	cnv        : out std_logic;
     enable_spi : out std_logic
     );
 end COMPONENT;
@@ -159,6 +162,7 @@ signal mon_address : STD_LOGIC_VECTOR(31 DOWNTO 0);
 signal ss_n : STD_LOGIC_VECTOR(0 DOWNTO 0);
 signal cnv_enable : std_logic;
 signal adc_read : std_logic;
+signal spi_busy : std_logic;
 signal adc_busy : std_logic;
 
 -- Common Signals
@@ -169,7 +173,7 @@ signal CONFIG_RES_TEMP   	: STD_LOGIC_VECTOR(10 downto 0);
 ------------------------------
 --for new state machine
 ------------------------------
-  type state_type is (st_reset, st_read_ADC, st_next_ch); 
+  type state_type is (st_reset, st_idle, st_read_ADC, st_next_ch); 
   signal cstate, nstate : state_type; 
 
 ------------------------------
@@ -185,7 +189,7 @@ signal CONFIG_RES_TEMP   	: STD_LOGIC_VECTOR(10 downto 0);
 --------------------------------
 -- Auto read Mode
 --------------------------------
-signal settle_intan, reset_intan, step_intan, sync_intan, mode_INTAN : STD_LOGIC;
+signal settle_intan, resetn_intan, step_intan, sync_intan, mode_INTAN : STD_LOGIC;
 signal CLK_SWITCH_INT      : STD_LOGIC; 
 
 signal virtual_mode : std_logic;
@@ -196,6 +200,8 @@ begin
 -- Intan Digital Input COnfiguration for Manual OR Auto(Sequential) Reading 
 ---------------------------------------------------------------------------- 
 --(Reserve Bits & SETTLE & SEL4 & SEL3 & SEL2 & SEL1 & SEL0 & TEST_ENB & CONN_ALL & DAQ_Start_Stop & READ_MODE & VIRTUAL MODE)	
+
+	sys_resetn 			<= not SYS_RESET;
 
 	CONFIG_RES_TEMP 	<= CONFIG_RES_IN;
 
@@ -208,13 +214,13 @@ begin
 	virtual_mode		<= CONFIG_RES_TEMP(0);       
 
 	settle      		<= CONFIG_RES_TEMP(10) when MODE_INTAN = '0' else
-	                       (sys_reset or CONFIG_RES_TEMP(10));	
+	                       (SYS_RESET or CONFIG_RES_TEMP(10));	
 
 	SEL1_step   		<= CONFIG_RES_TEMP(6) when MODE_INTAN = '0' else
 	                       step_intan;	                
 						        	                                    
 	SEL0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
-	                       (reset_intan or CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_reset; now you can reset intan through register also
+	                       (resetn_intan and CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_resetn; now you can reset intan through register also
 						   
 
 --inout port assignment for SEL(2:4)
@@ -271,11 +277,12 @@ begin
       tcnv => 142-1
       )
     Port map(
-    rst_n      =>SYS_RESET,
+    rst_n      =>sys_resetn,
     clk        =>SYS_CLK,
     enable_tx  => adc_read, --Start ADC read capture
     spi_cs     => ss_n(0),
-    spi_busy   => adc_busy,
+    spi_busy   => spi_busy,
+	busy 	   => adc_busy,
     cnv        => CNV_CONVERT_OUT,
     enable_spi => cnv_enable
     );
@@ -288,10 +295,10 @@ begin
     )
     PORT MAP(
       clock   => SYS_CLK,
-      reset_n => SYS_RESET,
+      reset_n => sys_resetn,
       enable  => cnv_enable,
       cpol    => '0',
-      cpha    => '0',
+      cpha    => '1',
       cont    => '0',
       clk_div_i => SPI_CLK_DIV, 
       addr_i    => mon_address, --SPI.addr -1
@@ -300,7 +307,7 @@ begin
       sclk    => SCLK_CLOCK_OUT,
       ss_n    =>ss_n, 
       mosi    => open,
-      busy    =>adc_busy,
+      busy    =>spi_busy,
       rx_data =>spi_data
     );
 
@@ -331,9 +338,9 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 	--FSM for intan readout
 
 	--sync process
-	process (SYS_CLK, SYS_RESET)
+	process (SYS_CLK, sys_resetn)
 	begin
-		if SYS_RESET = '0' then
+		if sys_resetn = '0' then
 			cstate<=st_reset;
 		elsif rising_edge(SYS_CLK) then
 			cstate<=nstate;
@@ -341,7 +348,7 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 	end process;
 
 	--next state process
-	process (cstate, adc_busy, DAQ_start)
+	process (cstate, adc_busy, DAQ_start, FIFO_FULL)
 	begin
 		case cstate is
 			when st_reset =>
@@ -350,17 +357,25 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 				else
 					nstate<=st_reset;
 				end if;
+			when st_idle =>
+				if DAQ_start = '0' then
+					nstate<=st_reset;
+				else
+					nstate<=st_read_ADC;
+				end if;
 			when st_read_ADC =>
 				if adc_busy = '1' then
 					nstate<=st_read_ADC;
-				else
+				elsif FIFO_FULL = '0' then
 					nstate<=st_next_ch;
+				else
+					nstate<=st_idle;
 				end if;			
 			when st_next_ch =>
 				if DAQ_start = '1' and adc_busy = '0' then
 					nstate<=st_read_ADC;
 				else
-					nstate<=st_reset;
+					nstate<=st_idle;
 				end if;
 			when others =>
 				nstate<=st_reset;
@@ -377,24 +392,31 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 			when st_reset =>
 				adc_read 	<='0';
 				fifo_wr_en 	<='0';
-				reset_intan <='0';
+				resetn_intan<='0';
+				step_intan 	<='0';
+			when st_idle =>
+				adc_read 	<='0';
+				fifo_wr_en 	<='0';
+				resetn_intan<='1';
 				step_intan 	<='0';
 			when st_read_ADC =>
 				adc_read	<='1';
 				fifo_wr_en	<='0';
-				reset_intan <='1';
+				resetn_intan <='1';
 				step_intan 	<='0';			
 			when st_next_ch =>
 				adc_read	<='0';
 				fifo_wr_en	<='1';
-				reset_intan <='1';
+				resetn_intan <='1';
 				step_intan 	<='1';	
 			when others =>
 				adc_read 	<='0';
 				fifo_wr_en 	<='0';
-				reset_intan <='0';
+				resetn_intan <='0';
 				step_intan 	<='0';
 		end case;
 	end process;
 
+	FIFO_READ_ACK  <= FIFO_FULL;
+	CLK_SWITCH <= step_intan;
 end Behavioral;
