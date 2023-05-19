@@ -78,7 +78,7 @@ begin
                 enable_spi<='1';
                 busy <='1';                    
             when tacq =>
-                cnv<=spi_cs;
+                cnv<='0';
                 enable_spi<='0';
                 busy <='1';                
         end case;      

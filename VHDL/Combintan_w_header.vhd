@@ -219,12 +219,12 @@ begin
     dpack_ab.TS_CORRECTION<='0';
     dpack_ab.SBE<=(others=>'0');
     dpack_ab.SAE<=nsasmples;
-    dpack_ab.TRIG<=DataIn_ack(0) or DataIn_ack(1);
+    dpack_ab.TRIG<=DataIn_ack(3) or DataIn_ack(2);
 
     dpack_cd.TS_CORRECTION<='0';
     dpack_cd.SBE<=(others=>'0');
     dpack_cd.SAE<=nsasmples;
-    dpack_cd.TRIG<=DataIn_ack(2) or DataIn_ack(3);
+    dpack_cd.TRIG<=DataIn_ack(1) or DataIn_ack(0);
 
     --Data Input
     dpack_ab.CLK<=ab_maxis_clk;
@@ -243,10 +243,10 @@ begin
 
     --HICCE Data   
     dpack_ab.DIN<=DataIn_A & DataIn_B;
-    dpack_ab.DVALID<=(DataIn_valid(0) OR DataIn_valid(1));
+    dpack_ab.DVALID<=(DataIn_valid(3) OR DataIn_valid(2));
 
     dpack_cd.DIN<=DataIn_C & DataIn_D;
-    dpack_cd.DVALID<=(DataIn_valid(2) OR DataIn_valid(3));
+    dpack_cd.DVALID<=(DataIn_valid(1) OR DataIn_valid(0));
     
 
     ab_maxis_tdata <= dpack_ab.maxis_tdata;

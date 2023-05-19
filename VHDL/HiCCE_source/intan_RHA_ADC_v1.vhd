@@ -293,8 +293,8 @@ begin
       clock   => SYS_CLK,
       reset_n => sys_resetn,
       enable  => cnv_enable,
-      cpol    => '0',
-      cpha    => '1',
+      cpol    => '1',
+      cpha    => '0',
       cont    => '0',
       clk_div_i => SPI_CLK_DIV, 
       addr_i    => (others=>'0'), --SPI.addr -1
