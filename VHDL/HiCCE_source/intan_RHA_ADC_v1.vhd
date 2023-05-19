@@ -84,20 +84,20 @@ signal sys_resetn : std_logic;
 -----------------------------------------------------------------------------------------------
 
 
-COMPONENT FIFO_64k_16bit_v0
+-- COMPONENT FIFO_64k_16bit_v0
 
-  PORT (
-		rst 			 : IN STD_LOGIC;
-		wr_clk 			 : IN STD_LOGIC;
-		rd_clk 			 : IN STD_LOGIC;
-		din 			 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-		wr_en 			 : IN STD_LOGIC;
-		rd_en 			 : IN STD_LOGIC;
-		dout 			 : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
-		full 			 : OUT STD_LOGIC;
-		empty 			 : OUT STD_LOGIC
-  );
-END COMPONENT;
+--   PORT (
+-- 		rst 			 : IN STD_LOGIC;
+-- 		wr_clk 			 : IN STD_LOGIC;
+-- 		rd_clk 			 : IN STD_LOGIC;
+-- 		din 			 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+-- 		wr_en 			 : IN STD_LOGIC;
+-- 		rd_en 			 : IN STD_LOGIC;
+-- 		dout 			 : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
+-- 		full 			 : OUT STD_LOGIC;
+-- 		empty 			 : OUT STD_LOGIC
+--   );
+-- END COMPONENT;
 
 
 -----------------------------------------------------------------------------------------------
@@ -158,7 +158,6 @@ end COMPONENT;
 signal spi_clk_div : std_logic_vector(31 downto 0);
 signal spi_data : std_logic_vector(17 downto 0);
 
-signal mon_address : STD_LOGIC_VECTOR(31 DOWNTO 0);
 signal ss_n : STD_LOGIC_VECTOR(0 DOWNTO 0);
 signal cnv_enable : std_logic;
 signal adc_read : std_logic;
@@ -205,76 +204,73 @@ begin
 
 	CONFIG_RES_TEMP 	<= CONFIG_RES_IN;
 
-	test_en     		<= CONFIG_RES_TEMP(4);
+	virtual_mode		<= CONFIG_RES_TEMP(0);   	
 	
 	MODE_INTAN	   		<= CONFIG_RES_TEMP(1);        -- Selection of Read Mode(Manual('0')/Auto_Sequential('1'))
-
+	
 	CONN_ALL			<= CONFIG_RES_TEMP(3);
- 
-	virtual_mode		<= CONFIG_RES_TEMP(0);       
+	
+	test_en     		<= CONFIG_RES_TEMP(4);
+    
+	SEL0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
+							(resetn_intan and CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_resetn; now you can reset intan through register also
+							
+	SEL1_step   		<= CONFIG_RES_TEMP(6) when MODE_INTAN = '0' else
+							step_intan;	      
+	
+	SEL2_SYNC  			<= CONFIG_RES_TEMP(7) when MODE_INTAN = '0' else
+							'Z';
+							sync_intan  <= SEL2_SYNC;
 
+	SEL3 				<= CONFIG_RES_TEMP(8) when MODE_INTAN = '0' else
+							'Z';
+
+	SEL4 				<= CONFIG_RES_TEMP(9) when MODE_INTAN = '0' else
+							'Z';          
+																		
 	settle      		<= CONFIG_RES_TEMP(10) when MODE_INTAN = '0' else
 	                       (SYS_RESET or CONFIG_RES_TEMP(10));	
-
-	SEL1_step   		<= CONFIG_RES_TEMP(6) when MODE_INTAN = '0' else
-	                       step_intan;	                
-						        	                                    
-	SEL0_reset  		<= CONFIG_RES_TEMP(5) when MODE_INTAN = '0' else -- Active LOW RESET
-	                       (resetn_intan and CONFIG_RES_TEMP(5));          -- modified on 22/07/2018; old = not sys_resetn; now you can reset intan through register also
-						   
-
---inout port assignment for SEL(2:4)
-	process (MODE_INTAN, CONFIG_RES_TEMP)
-		begin
-		if (MODE_INTAN = '0') then
-			SEL2_SYNC  <= CONFIG_RES_TEMP(7);
-			SEL3 <= CONFIG_RES_TEMP(8);
-			SEL4 <= CONFIG_RES_TEMP(9);
-			sync_intan<='0';
-		elsif (MODE_INTAN = '1') then
-			sync_intan  <= SEL2_SYNC;
-			SEL3 <= 'Z';
-			SEL4 <= 'Z';			
-		end if;
-	end process;
 		                       	
 	MODE <= MODE_INTAN;
 
 
-	-- Instantiate the synchronous_counter component
-	virtual_counter: synchronous_counter
-    port map (
-      clk         => SYS_CLK,
-      reset       => virtual_mode,
-      count       => virtual_count
-    );
-
+	
 ----------------------------------------------------------------------------
 -- LEDs Logic 
 ---------------------------------------------------------------------------- 
-
+	
 	LED_TEST_2 <= FIFO_FULL;   -- TEST LEDs
 	LED_TEST_1 <= sel2_sync;   -- TEST LEDs
 
+----------------------------------------------------------------------------
+-- Ramp generator
+---------------------------------------------------------------------------- 
+-- Instantiate the synchronous_counter component
 
+		virtual_counter: synchronous_counter
+		port map (
+		  clk         => SYS_CLK,
+		  reset       => virtual_mode,
+		  count       => virtual_count
+		);
+	
 ----------------------------------------------------------------------------
 -- ADC7982 SPI logic 
 ---------------------------------------------------------------------------- 
 
-	mon_address<=(others=>'0');
 	--To achieve 500-710 ns of conversion time and 290 ns of acquisition time
 	--Using a 250 MHz clk and an SPI clk division of 3 (24 ns/bit)
-	--SPI_CLK_T= 2*SYS_CLK_T_ns*SPI_CLK_DIV=2*(4ns)*(3)=24ns
+	--SPI_CLK_T= 2*SYS_CLK_T_ns*SPI_CLK_DIV=2*(4ns)*(3)=24 ns
 	--Acquisition time = 24ns * 18 = 432 ns.
-	--Conversion time= 1000ns - 432 ns = 568ns
-	--Conversion time= Conversion Time/SYS_CLK Period=568ns/4ns=142
+	--Conversion time= 1000ns - 432 ns = 568 ns
+	--Conversion time= Conversion Time/SYS_CLK Period=424ns/4ns=142
 	--removing one for state machine latency 
 
 	spi_clk_div<=std_logic_vector(to_unsigned(3,32));
 
     AD7982_CTRL: AD7982_CNV
     generic map(
-      tcnv => 142-1
+      tcnv => 142-3
       )
     Port map(
     rst_n      =>sys_resetn,
@@ -301,7 +297,7 @@ begin
       cpha    => '1',
       cont    => '0',
       clk_div_i => SPI_CLK_DIV, 
-      addr_i    => mon_address, --SPI.addr -1
+      addr_i    => (others=>'0'), --SPI.addr -1
       tx_data => (others=>'0'), 
       miso    => SDO_DATA_IN,
       sclk    => SCLK_CLOCK_OUT,
@@ -311,25 +307,36 @@ begin
       rx_data =>spi_data
     );
 
+
+
+	data_adc <= spi_data(17 downto 2) when virtual_mode = '0' else
+	virtual_count;
+
 -------------------------------
--- FIFO Generation (8K_16Bits)
+-- FIFO Generation (8K_16Bits) --Left for legacy, removed to be used with comblock fifo instead
 -------------------------------
 
-ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
+-- ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 
-  PORT MAP  (
-		      rst 		    => SYS_RESET,                   -- fifo reset is active high
-		      wr_clk 	    => SYS_CLK,                     -- to be checked
-		      rd_clk 	    => FIFO_clk,
-		      din 		    => data_adc, 		-- because we expect only positive values !!!
-		      wr_en 	    => fifo_wr_en_new,               -- modified 22/07/2018, old = fifo_wr_en
-		      rd_en 	    => FIFO_READ_ENB,  				-- same as with DPM --could be ("not empty" and "pipeO_read")
-		      dout 		    => FIFO_DATA_OUT,				-- OUT DATA tobe read from PC
-		      full 		    => FIFO_FULL, --open,    		-- we are not using these flags
-		      empty 	    => FIFO_empty
-            );
+--   PORT MAP  (
+-- 		      rst 		    => SYS_RESET,                   -- fifo reset is active high
+-- 		      wr_clk 	    => SYS_CLK,                     -- to be checked
+-- 		      rd_clk 	    => FIFO_clk,
+-- 		      din 		    => data_adc, 		-- because we expect only positive values !!!
+-- 		      wr_en 	    => fifo_wr_en_new,               -- modified 22/07/2018, old = fifo_wr_en
+-- 		      rd_en 	    => FIFO_READ_ENB,  				-- same as with DPM --could be ("not empty" and "pipeO_read")
+-- 		      dout 		    => FIFO_DATA_OUT,				-- OUT DATA tobe read from PC
+-- 		      full 		    => FIFO_FULL, --open,    		-- we are not using these flags
+-- 		      empty 	    => FIFO_empty
+--             );
 
     fifo_wr_en_new <= FIFO_WRITE_ENB and fifo_wr_en;
+
+	--Signals remaped to keep port names.
+
+	FIFO_DATA_OUT	<= data_adc when FIFO_READ_ENB = '1' else (others=>'0');
+	FIFO_FULL		<= '0';
+	FIFO_empty		<= not fifo_wr_en_new;
 
 ----------------------------------------------------------------------------
 -- State machine for sequential counting
@@ -364,7 +371,9 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 					nstate<=st_read_ADC;
 				end if;
 			when st_read_ADC =>
-				if adc_busy = '1' then
+				if FIFO_FULL = '1' then 
+					nstate<=st_reset;
+				elsif adc_busy = '1' then
 					nstate<=st_read_ADC;
 				elsif FIFO_FULL = '0' then
 					nstate<=st_next_ch;
@@ -381,9 +390,6 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 				nstate<=st_reset;
 		end case;
 	end process;
-
-	data_adc <= spi_data(17 downto 2) when virtual_mode = '0' else
-			    virtual_count;
 
 	--Current state process
 	process (cstate)
@@ -417,6 +423,6 @@ ZYNQ_Reads_FIFO : FIFO_64k_16bit_v0
 		end case;
 	end process;
 
-	FIFO_READ_ACK  <= FIFO_FULL;
+	FIFO_READ_ACK  <= sel2_sync;
 	CLK_SWITCH <= step_intan;
 end Behavioral;
