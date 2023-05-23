@@ -10,9 +10,9 @@ from hicce_data_acquisition import get_data, chunk_size, initial_setup, enable_a
 stream_name = 'HiCCE'
 stream_type = 'EEG'
 source_id = 'HiCCE_Version2.0_2023_April'
-chunk_size = chunk_size
+chunk_size = 20
 format = 'int16'
-n_cha = 64
+n_cha = 128
 l_cha = [str(i) for i in range(n_cha)]
 units = 'uV'
 manufacturer = 'MLab_ICTP'
@@ -62,13 +62,13 @@ def send_data():
                 # sample=np.random.rand(n_cha,chunk_size)
                 initial_setup()
                 enable_acquisition(chunk_size)
-                (TSAB, CHAB), (TSCD, CHCD)=get_data(chunk_size)
+                (TSAB, CH)=get_data(chunk_size)
                 if TSAB>0:
                     # for d in CHAB[0:8]:
                         # print(len(d))
                     # print(CHAB[0])
                     # print(CHAB[0:8])
-                    sample=CHAB
+                    sample=CH[0:64]
                 
                 # Get the timestamp of the chunk
                 # timestamp = pylsl.local_clock()
