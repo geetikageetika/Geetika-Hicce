@@ -147,16 +147,20 @@ COMPONENT AD7982_CNV is
 
     enable_tx  : in std_logic;
     spi_cs     : in std_logic;
+    spi_sclk   : in std_logic;
     spi_busy   : in std_logic;
     
     busy       : out std_logic;
 	cnv        : out std_logic;
+	sclk       : out std_logic;
     enable_spi : out std_logic
     );
 end COMPONENT;
 
 signal spi_clk_div : std_logic_vector(31 downto 0);
 signal spi_data : std_logic_vector(17 downto 0);
+signal spi_sclk : std_logic;
+signal adc_sclk : std_logic;
 
 signal ss_n : STD_LOGIC_VECTOR(0 DOWNTO 0);
 signal cnv_enable : std_logic;
@@ -277,9 +281,11 @@ begin
     clk        =>SYS_CLK,
     enable_tx  => adc_read, --Start ADC read capture
     spi_cs     => ss_n(0),
+	spi_sclk   => spi_sclk,
     spi_busy   => spi_busy,
 	busy 	   => adc_busy,
     cnv        => CNV_CONVERT_OUT,
+	sclk	   => adc_sclk,
     enable_spi => cnv_enable
     );
 
@@ -293,14 +299,14 @@ begin
       clock   => SYS_CLK,
       reset_n => sys_resetn,
       enable  => cnv_enable,
-      cpol    => '1',
-      cpha    => '0',
+      cpol    => '0',
+      cpha    => '1',
       cont    => '0',
       clk_div_i => SPI_CLK_DIV, 
       addr_i    => (others=>'0'), --SPI.addr -1
       tx_data => (others=>'0'), 
       miso    => SDO_DATA_IN,
-      sclk    => SCLK_CLOCK_OUT,
+      sclk    => spi_sclk,
       ss_n    =>ss_n, 
       mosi    => open,
       busy    =>spi_busy,
@@ -308,7 +314,7 @@ begin
     );
 
 
-
+	SCLK_CLOCK_OUT<=adc_sclk;
 	data_adc <= spi_data(17 downto 2) when virtual_mode = '0' else
 	virtual_count;
 

@@ -18,10 +18,12 @@ entity AD7982_CNV is
 
     enable_tx  : in std_logic;
     spi_cs     : in std_logic;
+    spi_sclk   : in std_logic;
     spi_busy   : in std_logic;
     
     busy       : out std_logic;
     cnv        : out std_logic;
+    sclk       : out std_logic;
     enable_spi : out std_logic
     );
 end AD7982_CNV;
@@ -65,20 +67,25 @@ begin
                 cnv<='0';
                 enable_spi<='0';
                 busy <='0';
+                sclk<='0';
             when tconv =>
                 if count >= tcnv/3 and count< (tcnv/3)+5 then
                     cnv<='0';
                 else
                     cnv<='1';
                 end if;
+                -- cnv<='1';
                 enable_spi<='0';
                 busy <='1';
+                sclk <='0';
             when start_acq =>
                 cnv<=spi_cs;
+                sclk <='0';
                 enable_spi<='1';
                 busy <='1';                    
             when tacq =>
                 cnv<='0';
+                sclk <=spi_sclk;
                 enable_spi<='0';
                 busy <='1';                
         end case;      

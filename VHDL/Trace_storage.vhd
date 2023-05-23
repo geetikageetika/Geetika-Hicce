@@ -94,6 +94,7 @@ architecture Behavioral of trace_str is
     signal event_number : unsigned(7 downto 0);
 
     constant SOH : std_logic_vector(7 downto 0) := x"01"; --! Start of Header
+    constant SOT : std_logic_vector(7 downto 0) := x"02"; --! Start of Header
     constant EOTXT : std_logic_vector(7 downto 0) := x"03"; --! End of Text
     constant EOT : std_logic_vector(7 downto 0) := x"04"; --! End of Transmission
 
@@ -229,7 +230,7 @@ architecture Behavioral of trace_str is
                 debug_state<="001";
 
             when WRITE_HEAD =>
-                maxis_tdata  <=SOH & hpack.CEN & hpack.SBT & hpack.SAT;  
+                maxis_tdata  <=SOH & hpack.CEN & SOT & SOT;  
                 maxis_tvalid <=maxis_tready;
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;

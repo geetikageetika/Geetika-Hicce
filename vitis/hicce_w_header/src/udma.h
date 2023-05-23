@@ -63,28 +63,39 @@ u32 XPAR_COMBLOCK_ID 	= 0;
 
 void read_HICCE(UINTPTR baseaddr, u32 *send_buf, u32 length) {
 	volatile u32 i = 0;
+	int CEN, CENT;
+	int PERR = 0;
 	int val=cbRead(baseaddr, CB_IFIFO_VALUE);
+//	int nsamples=cbRead(baseaddr, CB_OREG6); //TODO: CHANGE ACCORDINGLY TO THE NSAMPLES REGISTER IN THE COMBINTAN
 	int count=0;
-	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (val>>24 != 0x01)){
+
+//	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (val>>24 != 0x01) && ((val & 0xffff) != (nsamples & 0xff))){
+	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (val&0xff00ffff != 0x01000202)){
 		val=cbRead(baseaddr, CB_IFIFO_VALUE);
 		count=count+1;
-		if (count==1000){
+		if (count==100000){
 			send_buf[0] = FAIL;
 			break;
 		}
 	}
 //	xil_printf("FOUND HEAD %x", val);
+	CEN=(val>>16) & 0xff;
 	send_buf[i + 2] = val;
 	i++;
 	send_buf[1] = i;
 	while(!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (i < length)) {
 		val=cbRead(baseaddr, CB_IFIFO_VALUE);
-		if (val>>24 == 0x04){
-//			xil_printf("FOUND TAIL %x", val);
+		if ((val>>24 == 0x04)){
+			CENT=(val>>16)& 0xff;
+			PERR=val & 0x1;
 			send_buf[i + 2] = val;
 			i++;
 			send_buf[1] = i;
-			break;
+			if ((CENT==CEN) && PERR ==1){
+//				xil_printf("FOUND TAIL ERROR %x", val);
+//				send_buf[0] = FAIL;
+				break;
+			}
 		}
 		else{
 			send_buf[i + 2] = val;
@@ -92,8 +103,16 @@ void read_HICCE(UINTPTR baseaddr, u32 *send_buf, u32 length) {
 			send_buf[1] = i;
 		}
 	}
+//	if ((CENT==CEN) && PERR == 0){
+//		send_buf[0] = SUCCESS;
+//	}
+//	else{
+//		send_buf[0] = FAIL;
+//	}
 	send_buf[0] = SUCCESS;
+
     if (cbRead(baseaddr, CB_IFIFO_STATUS) & 0x04) {
+    	xil_printf("Underflow");
     	send_buf[0] = UNDERFLOW; // if underflow there was an error
     }
 }
