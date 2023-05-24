@@ -92,6 +92,7 @@ architecture Behavioral of trace_str is
     --! Header record definition
 
     signal event_number : unsigned(7 downto 0);
+    signal event_inc : std_logic;
 
     constant SOH : std_logic_vector(7 downto 0) := x"01"; --! Start of Header
     constant SOT : std_logic_vector(7 downto 0) := x"02"; --! Start of Header
@@ -220,7 +221,6 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <='0';
                 iTimeStamp.clear<='1';
                 debug_state<="000";
-
             when WAIT_STATE =>
                 maxis_tdata  <=DIN;  
                 maxis_tvalid <='0';
@@ -228,7 +228,6 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <='0';
                 iTimeStamp.clear<='0';
                 debug_state<="001";
-
             when WRITE_HEAD =>
                 maxis_tdata  <=SOH & hpack.CEN & SOT & SOT;  
                 maxis_tvalid <=maxis_tready;
@@ -236,7 +235,6 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
                 debug_state<="010";
-
             when WRITE_TSMSB =>
                 maxis_tdata  <=hpack.TSMSB;  
                 maxis_tvalid <=maxis_tready;
@@ -244,7 +242,6 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
                 debug_state<="011";
-
             when WRITE_TSLSB =>
                 maxis_tdata  <=hpack.TSLSB;  
                 maxis_tvalid <=maxis_tready;
@@ -252,7 +249,6 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
                 debug_state<="100";
-
             when COUNT_STATE =>
                 maxis_tdata  <=DIN;  
                 maxis_tvalid <=DVALID and maxis_tready;
@@ -260,26 +256,23 @@ architecture Behavioral of trace_str is
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='0';
                 debug_state<="101";
-
             when WRITE_EOH =>
-                maxis_tdata  <=EOT & hpack.CEN & hpack.TC & "00000000000000" & hpack.ERR;  
+                maxis_tdata  <=EOT & hpack.CEN & hpack.TC & "00000000000000" & FIFO_AFULL;  
                 maxis_tvalid <=maxis_tready;
                 maxis_tkeep  <=(others=>'1');
                 maxis_tlast  <=tlast;
                 iTimeStamp.clear<='1';
-                debug_state<="110";
-                
+                debug_state<="110";             
         end case;
     end process;
 
 
     --! Next state process
-    process(c_state, TRIG, maxis_tready, count, max_count, FIFO_AFULL)
+    process(c_state, TRIG, count, max_count)
     begin
         case (c_state) is
             when RST_STATE =>
                 n_state<=WAIT_STATE;
-                event_number<=x"00";
             when WAIT_STATE =>
                 if TRIG = '1' and maxis_tready='1' and FIFO_AFULL='0' then
                     hpack<=cpack;
@@ -289,28 +282,24 @@ architecture Behavioral of trace_str is
                 end if;
             when WRITE_HEAD =>
                 if FIFO_AFULL = '1' then
-                    hpack.ERR<='1';
                     n_state<=WRITE_EOH;
                 else
                     n_state<=WRITE_TSMSB;
                 end if;
             when WRITE_TSMSB =>
                 if FIFO_AFULL = '1' then
-                    hpack.ERR<='1';
                     n_state<=WRITE_EOH;
                 else
                     n_state<=WRITE_TSLSB;
                 end if;
             when WRITE_TSLSB =>
                 if FIFO_AFULL = '1' then
-                    hpack.ERR<='1';
                     n_state<=WRITE_EOH;
                 else
                     n_state<=COUNT_STATE;
                 end if;
             when COUNT_STATE =>
                 if FIFO_AFULL = '1' then
-                    hpack.ERR<='1';
                     n_state<=WRITE_EOH;
                 elsif (count>=max_count - 1) or (maxis_tready = '0') then
                     n_state<=WRITE_EOH;
@@ -319,14 +308,23 @@ architecture Behavioral of trace_str is
                 end if;    
             when WRITE_EOH =>
                 n_state<=WAIT_STATE;
-                if event_number = x"ff" then
-                    event_number<=x"00";
-                else
-                    event_number<=event_number+1;
-                end if;
         end case;    
     end process;
 
-
+    --EVENT number process
+    process(CLK, RSTN)
+    begin
+        if RSTN ='0' then
+            event_number<=(others=>'0');
+            event_inc<='0';
+        elsif rising_edge(CLK) then 
+            if c_state= WAIT_STATE and event_inc= '1' then
+                event_number<=event_number+1;
+                event_inc<='1';
+            else
+                event_inc<='0';
+            end if;
+        end if;
+    end process;
     
 end;

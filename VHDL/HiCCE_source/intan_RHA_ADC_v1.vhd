@@ -263,18 +263,18 @@ begin
 ---------------------------------------------------------------------------- 
 
 	--To achieve 500-710 ns of conversion time and 290 ns of acquisition time
-	--Using a 250 MHz clk and an SPI clk division of 3 (24 ns/bit)
-	--SPI_CLK_T= 2*SYS_CLK_T_ns*SPI_CLK_DIV=2*(4ns)*(3)=24 ns
-	--Acquisition time = 24ns * 18 = 432 ns.
-	--Conversion time= 1000ns - 432 ns = 568 ns
-	--Conversion time= Conversion Time/SYS_CLK Period=424ns/4ns=142
+	--Using a 100 MHz clk and an SPI clk division of 1 ( ns/bit)
+	--SPI_CLK_T= 2*SYS_CLK_T_ns*SPI_CLK_DIV=2*(10ns)*(1)=20 ns
+	--Acquisition time = 20ns * 18 = 360 ns.
+	--Conversion time= 1000ns - 360 ns = 640 ns
+	--Conversion time= Conversion Time/SYS_CLK Period=640ns/10ns=64
 	--removing one for state machine latency 
 
-	spi_clk_div<=std_logic_vector(to_unsigned(3,32));
+	spi_clk_div<=std_logic_vector(to_unsigned(1,32));
 
     AD7982_CTRL: AD7982_CNV
     generic map(
-      tcnv => 142-3
+      tcnv => 64-1
       )
     Port map(
     rst_n      =>sys_resetn,

@@ -66,55 +66,71 @@ void read_HICCE(UINTPTR baseaddr, u32 *send_buf, u32 length) {
 	int CEN, CENT;
 	int PERR = 0;
 	int val=cbRead(baseaddr, CB_IFIFO_VALUE);
+	int error=0;
 //	int nsamples=cbRead(baseaddr, CB_OREG6); //TODO: CHANGE ACCORDINGLY TO THE NSAMPLES REGISTER IN THE COMBINTAN
 	int count=0;
 
 //	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (val>>24 != 0x01) && ((val & 0xffff) != (nsamples & 0xff))){
-	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (val&0xff00ffff != 0x01000202)){
+	while (!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01)){
+//	while ((val>>24) != 0x01){
 		val=cbRead(baseaddr, CB_IFIFO_VALUE);
-		count=count+1;
-		if (count==100000){
-			send_buf[0] = FAIL;
+//		xil_printf("%x \n\r", (val&0xff00ffff));
+		if ((val&0xff00ffff) == 0x01000202){
+//			xil_printf("FOUND HEAD %x", val);
+			error=0;
 			break;
 		}
-	}
-//	xil_printf("FOUND HEAD %x", val);
-	CEN=(val>>16) & 0xff;
-	send_buf[i + 2] = val;
-	i++;
-	send_buf[1] = i;
-	while(!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (i < length)) {
-		val=cbRead(baseaddr, CB_IFIFO_VALUE);
-		if ((val>>24 == 0x04)){
-			CENT=(val>>16)& 0xff;
-			PERR=val & 0x1;
-			send_buf[i + 2] = val;
-			i++;
-			send_buf[1] = i;
-			if ((CENT==CEN) && PERR ==1){
-//				xil_printf("FOUND TAIL ERROR %x", val);
-//				send_buf[0] = FAIL;
+		else{
+			count=count+1;
+			if (count==10000){
+				xil_printf("Fail to find head");
+				error=1;
+				send_buf[0] = FAIL;
 				break;
 			}
 		}
-		else{
-			send_buf[i + 2] = val;
-			i++;
-			send_buf[1] = i;
-		}
 	}
-//	if ((CENT==CEN) && PERR == 0){
-//		send_buf[0] = SUCCESS;
-//	}
-//	else{
-//		send_buf[0] = FAIL;
-//	}
-	send_buf[0] = SUCCESS;
-
-    if (cbRead(baseaddr, CB_IFIFO_STATUS) & 0x04) {
-    	xil_printf("Underflow");
-    	send_buf[0] = UNDERFLOW; // if underflow there was an error
-    }
+	if (error==0){
+	//
+		CEN=(val>>16) & 0xff;
+		send_buf[i + 2] = val;
+		i++;
+		send_buf[1] = i;
+//		while(!(cbRead(baseaddr, CB_IFIFO_STATUS) & 0x01) && (i < length)) {
+		while(i < length) {
+			val=cbRead(baseaddr, CB_IFIFO_VALUE);
+			if ((val & 0xff007ffe) == 0x04000000){
+				CENT=(val>>16)& 0xff;
+				PERR=val & 0x1;
+				send_buf[i + 2] = val;
+				i++;
+				send_buf[1] = i;
+				if (PERR ==1){
+					xil_printf("FOUND TAIL ERROR %x", val);
+					xil_printf("%x, %x", CEN,CENT);
+	//				send_buf[0] = FAIL;
+					break;
+				}
+			}
+			else{
+				send_buf[i + 2] = val;
+				i++;
+				send_buf[1] = i;
+			}
+		}
+	//	if ((CENT==CEN) && PERR == 0){
+	//		send_buf[0] = SUCCESS;
+	//	}
+	//	else{
+	//		send_buf[0] = FAIL;
+	//	}
+		send_buf[0] = SUCCESS;
+	}
+//
+//    if (cbRead(baseaddr, CB_IFIFO_STATUS) & 0x04) {
+//    	xil_printf("Underflow");
+//    	send_buf[0] = UNDERFLOW; // if underflow there was an error
+//    }
 }
 
 void read_FIFO(UINTPTR baseaddr, u32 *send_buf, u32 length) {

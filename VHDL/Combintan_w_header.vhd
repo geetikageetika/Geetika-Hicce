@@ -230,15 +230,15 @@ begin
     dpack_ab.CLK<=ab_maxis_clk;
     dpack_ab.RSTN<=sys_rstn;
     dpack_ab.TIME_IN<=timestamp_i;
-    dpack_ab.READY<=ab_maxis_tready and sys_en;
-    dpack_ab.maxis_tready<=ab_maxis_tready and sys_en;
+    dpack_ab.READY<=sys_en;
+    dpack_ab.maxis_tready<=ab_maxis_tready;
     dpack_ab.FIFO_AFULL<=FIFO_AFULL_AB;
 
     dpack_cd.CLK<=cd_maxis_clk;
     dpack_cd.RSTN<=sys_rstn;
     dpack_cd.TIME_IN<=timestamp_i;
-    dpack_cd.READY<=cd_maxis_tready and sys_en;
-    dpack_cd.maxis_tready<=cd_maxis_tready and sys_en;
+    dpack_cd.READY<=sys_en;
+    dpack_cd.maxis_tready<=cd_maxis_tready;
     dpack_cd.FIFO_AFULL<=FIFO_AFULL_CD;
 
     --HICCE Data   
