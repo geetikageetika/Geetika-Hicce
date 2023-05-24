@@ -1,22 +1,22 @@
 import time, threading
 import pylsl
 import numpy as np
-from hicce_data_acquisition import get_data, chunk_size, initial_setup, enable_acquisition
-
+from hicce_data_acquisition import *
 
 #%% PARAMETERS
+NofIterations=1
 
 # LSL parameters
 stream_name = 'HiCCE'
 stream_type = 'EEG'
 source_id = 'HiCCE_Version2.0_2023_April'
-chunk_size = 20
+chunk_size = chunk_size
 format = 'int16'
-n_cha = 128
+n_cha = 64
 l_cha = [str(i) for i in range(n_cha)]
 units = 'uV'
 manufacturer = 'MLab_ICTP'
-sample_rate = 32768
+sample_rate = 250
 
 
  
@@ -62,21 +62,30 @@ def send_data():
                 # sample=np.random.rand(n_cha,chunk_size)
                 initial_setup()
                 enable_acquisition(chunk_size)
-                (TSAB, CH)=get_data(chunk_size)
-                if TSAB>0:
-                    # for d in CHAB[0:8]:
-                        # print(len(d))
-                    # print(CHAB[0])
-                    # print(CHAB[0:8])
-                    sample=CH[0:64]
+                # samples, TSAB, TSCD= readall(NofIterations, chunk_size)
+                ab_raw=read_channels(0,chunk_size)
+                if ab_raw == -1:
+                    print('Error')
+                    pass
+                else:
+                    CHAB, TSAB, FLAGSAB=decode(ab_raw)
+                    if FLAGSAB[0] or FLAGSAB[1]:
+                        sample=CHAB
+                        timestamp=TSAB[i]*4e-9
+                        print("Sending")
+                        lsl_outlet.push_chunk(sample, timestamp)
+
                 
-                # Get the timestamp of the chunk
-                # timestamp = pylsl.local_clock()
-                    timestamp=TSAB*4e-9
-                # Send the chunk through LSL
-                    lsl_outlet.push_chunk(sample, timestamp)
-                # Wait for the next chunk.
-                # time.sleep(chunk_size / sample_rate)
+                # for i in range(len(samples)):
+                #     sample=samples[i]    
+
+                # # Get the timestamp of the chunk
+                # # timestamp = pylsl.local_clock()
+                #     timestamp=TSAB[i]*4e-9
+
+                # # Send the chunk through LSL
+                #     lsl_outlet.push_chunk(sample, timestamp)
+
     
         except Exception as e:
             raise e

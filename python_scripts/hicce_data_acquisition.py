@@ -16,11 +16,11 @@ cb.log(0)
 def initial_setup(test_mode=0):
     """Initial setup for data acquisiton from HiCCE board.
     """    
- # Select comblock
+    # Select comblock
     cb.select_comblock(0)
     # Reset HiCCE
     cb.write_reg(5, 0) #RESET ON
-    
+
     #Disable Acquisiton 
     cb.write_reg(4, 0)
     cb.write_reg(7, 0)
@@ -130,12 +130,15 @@ def get_data(chunks=10):
     ab_raw=read_channels(0,chunks)
     cd_raw=read_channels(1,chunks)
     if ab_raw == -1:
-        print('Error', i)
+        print('Error AB', i)
+        FLAGSAB=[False, False]
         pass
     else:
         ab_decode=decode(ab_raw)
         CHAB, TSAB, FLAGSAB=ab_decode
     if cd_raw == -1:
+        print('Error CD', i)
+        FLAGSCD=[False, False]
         pass
     else:
         CHCD, TSCD, FLAGSCD=decode(cd_raw)
@@ -147,6 +150,36 @@ def get_data(chunks=10):
             ch[i]=ch[i]+CHAB[i]
             ch[i%64+64]=ch[i%64+64]+CHCD[i]
     return (TSAB, ch)
+
+def readall(NofIterations=50, chunksize=20):
+    ch=[]
+    tAB=[]
+    tCD=[]
+
+    samples=[]
+
+    for i in range(128):
+        ch.append([])
+    for i in range(NofIterations):
+        ab_raw=read_channels(0,chunksize)
+        cd_raw=read_channels(1,chunksize)
+        if ab_raw == -1:
+            print('Error', i)
+            pass
+        else:
+            ab_decode=decode(ab_raw)
+            CHAB, TSAB, FLAGSAB=ab_decode
+        if cd_raw == -1:
+            pass
+        else:
+            CHCD, TSCD, FLAGSCD=decode(cd_raw)
+        if FLAGSAB[0] or FLAGSAB[1] or FLAGSCD[0] or FLAGSCD[1]:
+            samples.append(CHAB+CHCD)
+            tAB.append(TSAB)
+            tCD.append(TSCD)
+
+    return samples, tAB, tCD
+
 
 def loop_setup(comblock=0):
     # Select comblock
