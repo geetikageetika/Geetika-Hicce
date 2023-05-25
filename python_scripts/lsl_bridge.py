@@ -4,19 +4,20 @@ import numpy as np
 from hicce_data_acquisition import *
 
 #%% PARAMETERS
-NofIterations=1
+NofIterations=2
 
 # LSL parameters
 stream_name = 'HiCCE'
 stream_type = 'EEG'
 source_id = 'HiCCE_Version2.0_2023_April'
-chunk_size = chunk_size
+chunk_size = 100
 format = 'int16'
-n_cha = 64
+n_cha = 1
 l_cha = [str(i) for i in range(n_cha)]
 units = 'uV'
 manufacturer = 'MLab_ICTP'
-sample_rate = 250
+sample_rate = 31250
+
 
 
  
@@ -60,20 +61,16 @@ def send_data():
                 # Get data
                 # sample = data_acquisition()
                 # sample=np.random.rand(n_cha,chunk_size)
-                initial_setup()
+                initial_setup(test_mode=0)
                 enable_acquisition(chunk_size)
                 # samples, TSAB, TSCD= readall(NofIterations, chunk_size)
-                ab_raw=read_channels(0,chunk_size)
-                if ab_raw == -1:
-                    print('Error')
-                    pass
-                else:
-                    CHAB, TSAB, FLAGSAB=decode(ab_raw)
-                    if FLAGSAB[0] or FLAGSAB[1]:
-                        sample=CHAB
-                        timestamp=TSAB[i]*4e-9
-                        print("Sending")
-                        lsl_outlet.push_chunk(sample, timestamp)
+                samples, tab, flags=read_HICCE(NofIterations, chunk_size)
+                
+                for i in range(len(samples)):
+                    sample=samples[i][0]
+                    timestamp=tab[i][0]*1e-6
+                    # print("Sending", sample, timestamp)
+                    lsl_outlet.push_chunk(sample, timestamp)
 
                 
                 # for i in range(len(samples)):

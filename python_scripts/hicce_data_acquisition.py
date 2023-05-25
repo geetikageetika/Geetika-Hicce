@@ -12,15 +12,15 @@ cb = UDMA_CLASS("140.105.17.180", 7)
 cb.connect()
 cb.log(0)
 
-
 def initial_setup(test_mode=0):
     """Initial setup for data acquisiton from HiCCE board.
-    """    
+    """
+  
     # Select comblock
     cb.select_comblock(0)
     # Reset HiCCE
     cb.write_reg(5, 0) #RESET ON
-
+    
     #Disable Acquisiton 
     cb.write_reg(4, 0)
     cb.write_reg(7, 0)
@@ -40,10 +40,10 @@ def initial_setup(test_mode=0):
     cb.write_reg(2, 0x1c02+test_mode)
     cb.write_reg(3, 0x1c02+test_mode)
     # Configure INTANT (Cyclic Read)
-    cb.write_reg(0, 0x26+test_mode)
-    cb.write_reg(1, 0x26+test_mode)
-    cb.write_reg(2, 0x26+test_mode)
-    cb.write_reg(3, 0x26+test_mode)
+    cb.write_reg(0, 0x1826+test_mode)
+    cb.write_reg(1, 0x1826+test_mode)
+    cb.write_reg(2, 0x1826+test_mode)
+    cb.write_reg(3, 0x1826+test_mode)
 
 def enable_acquisition(NSamples=100):
     cb.select_comblock(0)
@@ -54,14 +54,8 @@ def enable_acquisition(NSamples=100):
     cb.write_reg(4, 15) ##Enabling INTAN readout (legacy)
     cb.write_reg(5, 1) ##Enabling HICCE Driver
     cb.write_reg(7, 1) #Enable FIFOs
-
-def enable_acquisition(NSamples=100):
-    #Set number of samples per package
-    cb.write_reg(6, 32*NSamples)
-
-    #Enable acquisition
-    cb.write_reg(4, 15)
-    cb.write_reg(7,1)
+    
+    
 
 def read_channels(Ncomblock=0, NSamp=100, TO=1000):
     cb.select_comblock(Ncomblock)
@@ -76,6 +70,7 @@ def read_channels(Ncomblock=0, NSamp=100, TO=1000):
                 return -1
         else:
             wordsInFifo=wordsInFifo_new
+            # print("Values in FIFO ", wordsInFifo)
             wd=0
     if NSamp==1:
         samples_to_read=(32*NSamp)+5
@@ -119,6 +114,30 @@ def decode(dpack):
         CH[(i%32)+32].append(LSCH)
          
     return CH, TS, (SBT==SAT, FLAGS==0)
+
+def read_HICCE(NofIterations=50, chunksize=20):
+    t=[]
+    flags=[]
+    samples=[]
+    for i in range(NofIterations):
+        data_ab=read_channels(0,chunksize)
+        data_cd=read_channels(1,chunksize)
+        # print(data_ab)
+        # print(data_cd)
+        if data_ab == -1 or data_cd== -1:
+            if data_ab== -1:
+                print('Error ab', i)
+            if data_cd== -1:
+                print("Error cd", i)
+            pass
+        else:
+            CHAB, TSAB, FLAGSAB=decode(data_ab)
+            CHCD, TSCD, FLAGSCD=decode(data_cd)
+            samples.append(CHAB+CHCD)
+            t.append((TSAB,TSCD))
+            flags.append((FLAGSAB,FLAGSCD))
+
+    return samples, t, flags
     
 def get_data(chunks=10):
     # initial_setup()
