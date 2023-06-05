@@ -23,7 +23,7 @@
 # 2. The following source(s) files that were local or imported into the original project.
 #    (Please see the '$orig_proj_dir' and '$origin_dir' variable setting below at the start of the script)
 #
-#    "/home/kbogt/my_gits/HICCE/hicce-project/hicce_w_header/hicce_w_header.srcs/utils_1/imports/synth_1/HICCEv2_w_header_wrapper.dcp"
+#    <none>
 #
 # 3. The following remote source files that were added to the original project:-
 #
@@ -48,9 +48,6 @@
 # Check file required for this script exists
 proc checkRequiredFiles { origin_dir} {
   set status true
-  set files [list \
- "[file normalize "$origin_dir/hicce_w_header/hicce_w_header.srcs/utils_1/imports/synth_1/HICCEv2_w_header_wrapper.dcp"]"\
-  ]
   foreach ifile $files {
     if { ![file isfile $ifile] } {
       puts " Could not find local file $ifile "
@@ -356,23 +353,6 @@ set_property -name "top" -value "HiCCEv2_v2022" -objects $obj
 set_property -name "top_arch" -value "Behavioral" -objects $obj
 set_property -name "top_file" -value "VHDL/HiCCE_source/HiCCEv2_v2022.vhd" -objects $obj
 set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
-
-# Set 'utils_1' fileset object
-set obj [get_filesets utils_1]
-# Import local files from the original project
-set files [list \
- [file normalize "${origin_dir}/hicce_w_header/hicce_w_header.srcs/utils_1/imports/synth_1/HICCEv2_w_header_wrapper.dcp" ]\
-]
-set imported_files [import_files -fileset utils_1 $files]
-
-# Set 'utils_1' fileset file properties for remote files
-# None
-
-# Set 'utils_1' fileset file properties for local files
-set file "synth_1/HICCEv2_w_header_wrapper.dcp"
-set file_obj [get_files -of_objects [get_filesets utils_1] [list "*$file"]]
-set_property -name "netlist_only" -value "0" -objects $file_obj
-
 
 # Set 'utils_1' fileset properties
 set obj [get_filesets utils_1]
@@ -1178,7 +1158,6 @@ if { $obj != "" } {
 
 }
 set obj [get_runs synth_1]
-set_property -name "incremental_checkpoint" -value "$proj_dir/hicce_w_header.srcs/utils_1/imports/synth_1/HICCEv2_w_header_wrapper.dcp" -objects $obj
 set_property -name "auto_incremental_checkpoint" -value "1" -objects $obj
 set_property -name "strategy" -value "Flow_AreaOptimized_medium" -objects $obj
 set_property -name "steps.synth_design.args.directive" -value "AreaOptimized_medium" -objects $obj
